@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using YARG.Assets.Script.YargAP;
 using YARG.Core.Audio;
 using YARG.Core.Chart;
 using YARG.Core.Engine;
@@ -192,11 +193,15 @@ namespace YARG.Gameplay
             CountdownDisplay.DisplayStyle = SettingsManager.Settings.CountdownDisplay.Value;
 
             _frameTimes = new List<double>();
+
+            Assets.Script.YargAP.APEvents.CurrentSong = this;
         }
 
         private void OnDestroy()
         {
             YargLogger.LogInfo("Exiting song");
+
+            Assets.Script.YargAP.APEvents.CurrentSong = null;
 
             if (Navigator.Instance != null)
             {
@@ -496,6 +501,8 @@ namespace YARG.Gameplay
 
             RecordScores(replayInfo);
 
+            APEvents.TryCheckSongLocation(this);
+
             // Dispose the crowd handler
             CrowdEventHandler.Dispose();
 
@@ -709,6 +716,8 @@ namespace YARG.Gameplay
                 _mixer.FadeOut(SONG_END_DELAY);
                 await UniTask.Delay(TimeSpan.FromSeconds(SONG_END_DELAY));
                 GlobalAudioHandler.PlayVoxSample(VoxSample.FailSound);
+                if (APEvents._isConnected && APEvents.deathLinkService != null)
+                    APEvents.deathLinkService.SendDeathLink(new Archipelago.MultiClient.Net.BounceFeatures.DeathLink.DeathLink(APEvents.session.Players.ActivePlayer.Name, $"Failed song {Song.Name}"));
                 Pause();
             }
         }

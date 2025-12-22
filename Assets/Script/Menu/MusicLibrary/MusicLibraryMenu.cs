@@ -5,6 +5,7 @@ using System.Threading;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using YARG.Assets.Script.YargAP;
 using YARG.Core;
 using YARG.Core.Audio;
 using YARG.Core.Game;
@@ -462,6 +463,40 @@ namespace YARG.Menu.MusicLibrary
                 {
                     list.Add(new CategoryViewType(
                         Localize.Key("Menu.MusicLibrary.AllSongs"), songCount, SongContainer.Songs));
+
+
+                    var APSongsHash = APEvents.GetUnplayedAvailableLocations();
+
+                    if (APSongsHash.Contains(APEvents.GoalHash))
+                    {
+                        var GoalSong = SongContainer.Songs.FirstOrDefault(x => x.Hash.ToString() == APEvents.GoalHash);
+                        if (GoalSong != null)
+                        {
+                            list.Add(new CategoryViewType("Archipelago GOAL Song", 1, new SongEntry[] { GoalSong }, RefreshAndReselect));
+                            list.Add(new SongViewType(this, GoalSong));
+                        }
+                        APSongsHash.Remove(APEvents.GoalHash);
+                    }
+
+                    if (APSongsHash.Count > 0)
+                    {
+                        Debug.Log(string.Join("|", APSongsHash));
+                        var AvailableAPSongs = new List<SongEntry>();
+                        foreach (var APSong in APSongsHash)
+                        {
+                            var Song = SongContainer.Songs.FirstOrDefault(x => x.Hash.ToString() == APSong);
+                            if (Song != null)
+                                AvailableAPSongs.Add(Song);
+                            else
+                                ToastManager.ToastError($"Failed to find song with song hash {APSong}!\nEnsure you are using the YARG official setlist!");
+                        }
+                        if (AvailableAPSongs.Count > 0)
+                        {
+                            list.Add(new CategoryViewType("Archipelago Songs", AvailableAPSongs.Count, AvailableAPSongs.ToArray(), RefreshAndReselect));
+                            foreach (var song in AvailableAPSongs)
+                                list.Add(new SongViewType(this, song));
+                        }
+                    }
 
                     if (_recommendedSongs != null)
                     {
