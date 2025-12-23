@@ -17,7 +17,7 @@ namespace YARG.Assets.Script.YargAP
 {
     internal class APEvents
     {
-        public static string GoalHash;
+        public static string GoalSong;
         public static GameManager CurrentSong = null;
         public static bool PrintChatMessages = true;
         public static bool PrintUnrelatedItems = false;
@@ -60,10 +60,9 @@ namespace YARG.Assets.Script.YargAP
                 var item = helper.DequeueItem();
 
                 //Item ID 1 is Yarg Gem, for now I just made it grant star power
-                if (item.ItemId == (long)APData.APFiller.YargGem && CurrentSong != null)
+                if (item.ItemId == (long) APData.APFiller.YargGem && CurrentSong != null)
                     foreach (var i in CurrentSong.Players)
                         ApplyStarPowerItem(i, CurrentSong);
-
             }
         }
 
@@ -100,13 +99,13 @@ namespace YARG.Assets.Script.YargAP
 
         internal static void TryCheckSongLocation(GameManager gameManager)
         {
-            if (!_isConnected || !RecievedSongs.Contains(gameManager.Song.Hash.ToString()))
+            if (!_isConnected || !RecievedSongs.Contains(gameManager.Song.Name))
                 return;
 
-            if (APData.SongHashToAPLocations().TryGetValue(gameManager.Song.Hash.ToString(), out var Locations))
+            if (APData.SongHashToAPLocations().TryGetValue(gameManager.Song.Name, out var Locations))
                 session.Locations.CompleteLocationChecksAsync(Locations);
 
-            if (GoalHash != null && GoalHash == gameManager.Song.Hash.ToString())
+            if (GoalSong != null && GoalSong == gameManager.Song.Name)
                 session.SetGoalAchieved();
 
         }

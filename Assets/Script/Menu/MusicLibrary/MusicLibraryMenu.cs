@@ -465,26 +465,26 @@ namespace YARG.Menu.MusicLibrary
                         Localize.Key("Menu.MusicLibrary.AllSongs"), songCount, SongContainer.Songs));
 
 
-                    var APSongsHash = APEvents.GetUnplayedAvailableLocations();
+                    var AvailableSongs = APEvents.GetUnplayedAvailableLocations();
 
-                    if (APSongsHash.Contains(APEvents.GoalHash))
+                    if (AvailableSongs.Contains(APEvents.GoalSong))
                     {
-                        var GoalSong = SongContainer.Songs.FirstOrDefault(x => x.Hash.ToString() == APEvents.GoalHash);
+                        var GoalSong = SongContainer.Songs.FirstOrDefault(x => x.Name == APEvents.GoalSong);
                         if (GoalSong != null)
                         {
                             list.Add(new CategoryViewType("Archipelago GOAL Song", 1, new SongEntry[] { GoalSong }, RefreshAndReselect));
                             list.Add(new SongViewType(this, GoalSong));
                         }
-                        APSongsHash.Remove(APEvents.GoalHash);
+                        AvailableSongs.Remove(APEvents.GoalSong);
                     }
 
-                    if (APSongsHash.Count > 0)
+                    if (AvailableSongs.Count > 0)
                     {
-                        Debug.Log(string.Join("|", APSongsHash));
+                        Debug.Log(string.Join("|", AvailableSongs));
                         var AvailableAPSongs = new List<SongEntry>();
-                        foreach (var APSong in APSongsHash)
+                        foreach (var APSong in AvailableSongs)
                         {
-                            var Song = SongContainer.Songs.FirstOrDefault(x => x.Hash.ToString() == APSong);
+                            var Song = SongContainer.Songs.FirstOrDefault(x => x.Name == APSong);
                             if (Song != null)
                                 AvailableAPSongs.Add(Song);
                             else
