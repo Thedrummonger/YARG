@@ -101,7 +101,7 @@ namespace YARG.Assets.Script.YargAP
             if (SlotData.ContainsKey("songlist"))
             {
                 var songlistObj = (JObject)SlotData["songlist"];
-                APData.SongNames = songlistObj.ToObject<Dictionary<string, int?[]>>();
+                APData.SongNames = songlistObj.ToObject<Dictionary<string, object[]>>();
                 APData.NeedsRegen = true;
             }
             else
@@ -120,6 +120,7 @@ namespace YARG.Assets.Script.YargAP
                     WasMissingSong = true;
                     Debug.LogError($"{i.Key} Was not found in the current yarg song list");
                 }
+
             if (WasMissingSong)
                 DialogManager.Instance.ShowMessage("Missing Song Error", "One or more songs were not found in your YARG setlist\nEnsure you are using the YARG official setlist!");
 
@@ -149,6 +150,7 @@ namespace YARG.Assets.Script.YargAP
             {
                 APEvents.deathLinkService = DeathLinkProvider.CreateDeathLinkService(APEvents.session);
                 APEvents.deathLinkService.EnableDeathLink();
+                APEvents.deathLinkService.OnDeathLinkReceived += APEvents.ProcessDeathLink;
             }
 
             APEvents.UpdateRecievedSongs();
@@ -163,7 +165,7 @@ namespace YARG.Assets.Script.YargAP
             APEvents.session.Items.ItemReceived -= APEvents.Items_ItemReceived;
             APEvents.GoalSong = null;
             APEvents.deathLinkService = null;
-            APData.SongNames = new Dictionary<string, int?[]>();
+            APData.SongNames = new Dictionary<string, object[]>();
             APData.NeedsRegen = true;
         }
 

@@ -23,6 +23,7 @@ namespace YARG.Assets.Script.YargAP
         public static bool PrintUnrelatedItems = false;
         public static ArchipelagoSession session;
         public static DeathLinkService deathLinkService;
+        public static APData.DeathLinkType deathLinkType = APData.DeathLinkType.RockMeter;
         public static bool _isConnected => APEvents.session?.Socket != null && APEvents.session.Socket.Connected;
 
         public static HashSet<string> RecievedSongs = new HashSet<string>();
@@ -108,6 +109,26 @@ namespace YARG.Assets.Script.YargAP
             if (GoalSong != null && GoalSong == gameManager.Song.Name)
                 session.SetGoalAchieved();
 
+        }
+
+        public static void ProcessDeathLink(DeathLink deathLink)
+        {
+            if (CurrentSong == null)
+                return;
+            //Set each players rock meter low enough that one missed note causes a fail.
+            switch (deathLinkType)
+            {
+                case APData.DeathLinkType.Fail:
+                    _ = CurrentSong.ForceSongFail();
+                    break;
+                case APData.DeathLinkType.RockMeter:
+                    foreach (var player in CurrentSong.Players)
+                    {
+                        var EngineContainer = player.GetEngineContainer();
+                        EngineContainer.SetHappiness(CurrentSong.EngineManager, 0.02f);
+                    }
+                    break;
+            }
         }
     }
 }

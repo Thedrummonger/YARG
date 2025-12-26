@@ -13,8 +13,13 @@ namespace YARG.Assets.Script.YargAP
         {
             YargGem = 1
         }
+        public enum DeathLinkType
+        {
+            Fail = 1,
+            RockMeter = 2
+        }
 
-        public static Dictionary<string, int?[]> SongNames = new Dictionary<string, int?[]>();
+        public static Dictionary<string, object[]> SongNames = new Dictionary<string, object[]>();
 
         private static Dictionary<long, string> _APLocationIDToSongName;
         public static Dictionary<long, string> APLocationIDToHash()

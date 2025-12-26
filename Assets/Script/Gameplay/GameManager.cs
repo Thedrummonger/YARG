@@ -712,14 +712,19 @@ namespace YARG.Gameplay
 
             if (!PlayerHasFailed)
             {
-                PlayerHasFailed = true;
-                _mixer.FadeOut(SONG_END_DELAY);
-                await UniTask.Delay(TimeSpan.FromSeconds(SONG_END_DELAY));
-                GlobalAudioHandler.PlayVoxSample(VoxSample.FailSound);
                 if (APEvents._isConnected && APEvents.deathLinkService != null)
                     APEvents.deathLinkService.SendDeathLink(new Archipelago.MultiClient.Net.BounceFeatures.DeathLink.DeathLink(APEvents.session.Players.ActivePlayer.Name, $"Failed song {Song.Name}"));
-                Pause();
+                await ForceSongFail();
             }
+        }
+
+        public async UniTask ForceSongFail()
+        {
+            PlayerHasFailed = true;
+            _mixer.FadeOut(SONG_END_DELAY);
+            await UniTask.Delay(TimeSpan.FromSeconds(SONG_END_DELAY));
+            GlobalAudioHandler.PlayVoxSample(VoxSample.FailSound);
+            Pause();
         }
 
         // If we go from no fail to fail, we need to reinitialize the happiness state so we avoid
