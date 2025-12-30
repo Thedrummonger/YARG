@@ -27,9 +27,19 @@ namespace YARG.Assets.Script.YargAP
         public static ArchipelagoSession session;
         public static DeathLinkService deathLinkService;
         public static APData.DeathLinkType deathLinkType = APData.DeathLinkType.RockMeter;
+        public static int deathLinkOverride = 0;
         public static bool _isConnected => APEvents.session?.Socket != null && APEvents.session.Socket.Connected;
 
         public static HashSet<string> RecievedSongs = new HashSet<string>();
+
+        public static APData.DeathLinkType GetDeathLinkSetting()
+        {
+            if (deathLinkOverride == 2)
+                return APData.DeathLinkType.Fail;
+            if (deathLinkOverride == 3)
+                return APData.DeathLinkType.RockMeter;
+            return deathLinkType;
+        }
 
         public static void UpdateRecievedSongs()
         {
@@ -121,15 +131,16 @@ namespace YARG.Assets.Script.YargAP
 
         public static void ProcessDeathLink(DeathLink deathLink)
         {
-            if (CurrentSong == null)
+            if (CurrentSong == null || deathLinkOverride == 1)
                 return;
-            //Set each players rock meter low enough that one missed note causes a fail.
-            switch (deathLinkType)
+            var type = GetDeathLinkSetting();
+            switch (type)
             {
                 case APData.DeathLinkType.Fail:
                     _ = CurrentSong.ForceSongFail();
                     break;
                 case APData.DeathLinkType.RockMeter:
+                    //Set each players rock meter low enough that one missed note causes a fail.
                     foreach (var player in CurrentSong.Players)
                     {
                         var EngineContainer = player.GetEngineContainer();
