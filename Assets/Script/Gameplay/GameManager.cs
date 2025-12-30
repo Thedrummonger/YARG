@@ -290,6 +290,13 @@ namespace YARG.Gameplay
                     return;
                 }
             }
+            if (Keyboard.current.ctrlKey.isPressed && Keyboard.current.qKey.wasPressedThisFrame)
+            {
+                if (EndSong(true))
+                {
+                    return;
+                }
+            }
         }
 
         public void SetSongTime(double time, double delayTime = SONG_START_DELAY)
@@ -454,7 +461,7 @@ namespace YARG.Gameplay
         public double GetRelativeInputTime(double timeFromInputSystem)
             => _songRunner.GetRelativeInputTime(timeFromInputSystem);
 
-        private bool EndSong()
+        private bool EndSong(bool Force = false)
         {
             if (IsPractice)
             {
@@ -462,7 +469,7 @@ namespace YARG.Gameplay
                 return false;
             }
 
-            if (_songRunner.SongTime < SongLength + SONG_END_DELAY)
+            if (_songRunner.SongTime < SongLength + SONG_END_DELAY && !Force)
             {
                 return false;
             }
@@ -501,7 +508,14 @@ namespace YARG.Gameplay
 
             RecordScores(replayInfo);
 
-            APEvents.TryCheckSongLocation(this);
+            //Prevent checking the location if any player had their score invalidated;
+            var APCheckInvalid = false; // _players.Any(x => !ScoreContainer.IsSoloScoreValid(SongSpeed, x.Player));
+
+            //Prevent checking the location if nofail was enabled;
+            APCheckInvalid = false; // = SettingsManager.Settings.NoFailMode.Value;
+
+            if (!APCheckInvalid)
+                APEvents.TryCheckSongLocation(this);
 
             // Dispose the crowd handler
             CrowdEventHandler.Dispose();
@@ -712,14 +726,19 @@ namespace YARG.Gameplay
 
             if (!PlayerHasFailed)
             {
-                PlayerHasFailed = true;
-                _mixer.FadeOut(SONG_END_DELAY);
-                await UniTask.Delay(TimeSpan.FromSeconds(SONG_END_DELAY));
-                GlobalAudioHandler.PlayVoxSample(VoxSample.FailSound);
                 if (APEvents._isConnected && APEvents.deathLinkService != null)
                     APEvents.deathLinkService.SendDeathLink(new Archipelago.MultiClient.Net.BounceFeatures.DeathLink.DeathLink(APEvents.session.Players.ActivePlayer.Name, $"Failed song {Song.Name}"));
-                Pause();
+                await ForceSongFail();
             }
+        }
+
+        public async UniTask ForceSongFail()
+        {
+            PlayerHasFailed = true;
+            _mixer.FadeOut(SONG_END_DELAY);
+            await UniTask.Delay(TimeSpan.FromSeconds(SONG_END_DELAY));
+            GlobalAudioHandler.PlayVoxSample(VoxSample.FailSound);
+            Pause();
         }
 
         // If we go from no fail to fail, we need to reinitialize the happiness state so we avoid
