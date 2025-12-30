@@ -124,10 +124,12 @@ namespace YARG.Assets.Script.YargAP
             if (APData.SongHashToAPLocations().TryGetValue(gameManager.Song.Name, out var Locations))
                 session.Locations.CompleteLocationChecksAsync(Locations);
 
-            if (GoalSong != null && GoalSong == gameManager.Song.Name && GoalItemCount >= GoalItemNeeded)
+            if (GoalSong != null && GoalSong == gameManager.Song.Name && CanCompleteGoalSong())
                 session.SetGoalAchieved();
 
         }
+
+        public static bool CanCompleteGoalSong() => _isConnected && RecievedSongs.Contains(GoalSong) && GoalItemCount >= GoalItemNeeded;
 
         public static void ProcessDeathLink(DeathLink deathLink)
         {

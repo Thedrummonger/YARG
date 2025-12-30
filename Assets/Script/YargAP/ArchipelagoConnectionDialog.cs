@@ -25,7 +25,7 @@ namespace YARG.Assets.Script.YargAP
         [SerializeField] private string slotName = "";
         [SerializeField] private string password = "";
 
-        private string[] deathLinkOptions = { "yaml", "disabled", "instant", "one hit" };
+        private string[] deathLinkOptions = { "use yaml", "disabled", "instant", "one hit" };
         private bool showDeathlinkDropdown = false;
 
         private Rect _windowRect = new Rect(20, 20, 400, 260);
@@ -82,10 +82,12 @@ namespace YARG.Assets.Script.YargAP
 
             GUILayout.BeginVertical(GUILayout.Width(180));
 
-            GUILayout.Label("Death Link Override");
+            GUILayout.Label("Deathlink Status");
 
             string statusText = APEvents._isConnected ? (APEvents.deathLinkService != null ? "Enabled by YAML" : "Disabled by YAML") : "Not Connected";
             GUILayout.Label(statusText);
+
+            GUILayout.Label("Deathlink Setting Override");
 
             if (APEvents._isConnected && APEvents.deathLinkService != null)
             {
