@@ -11,7 +11,8 @@ namespace YARG.Assets.Script.YargAP
         public static bool NeedsRegen = true;
         public enum APFiller
         {
-            YargGem = 1
+            YargGem = 1,
+            StarPower = 2
         }
         public enum DeathLinkType
         {
@@ -19,25 +20,15 @@ namespace YARG.Assets.Script.YargAP
             RockMeter = 2
         }
 
-        public static Dictionary<string, object[]> SongNames = new Dictionary<string, object[]>();
-
-        private static Dictionary<long, string> _APLocationIDToSongName;
-        public static Dictionary<long, string> APLocationIDToHash()
+        public enum GoalDisplaySetting
         {
-            if (_APLocationIDToSongName is not null && !NeedsRegen)
-                return _APLocationIDToSongName;
-            _APLocationIDToSongName = new();
-            var Index = 1; //Song locations start at index 1 in the apworld 
-            foreach(var i in SongNames)
-            {
-                _APLocationIDToSongName[Index] = i.Key;
-                Index++;
-                _APLocationIDToSongName[Index] = i.Key;
-                Index++;
-            }
-            NeedsRegen = false;
-            return _APLocationIDToSongName;
+            alwaysvisible = 0,
+            song = 1,
+            gems = 2,
+            both = 3
         }
+
+        public static Dictionary<string, int[]> SongNames = new Dictionary<string, int[]>();
 
         private static Dictionary<string, long[]> _SongNameToAPLocations;
         public static Dictionary<string, long[]> SongHashToAPLocations()
@@ -45,12 +36,8 @@ namespace YARG.Assets.Script.YargAP
             if (_SongNameToAPLocations is not null && !NeedsRegen)
                 return _SongNameToAPLocations;
             _SongNameToAPLocations = new();
-            int Index = 1; //Song locations start at index 1 in the apworld 
             foreach (var i in SongNames)
-            {
-                _SongNameToAPLocations[i.Key] = new long[] { Index, Index + 1 };
-                Index += 2;
-            }
+                _SongNameToAPLocations[i.Key] = new long[] { i.Value[0], i.Value[1] };
             NeedsRegen = false;
             return _SongNameToAPLocations;
         }
@@ -61,12 +48,8 @@ namespace YARG.Assets.Script.YargAP
             if (_APItemIDToSongName is not null && !NeedsRegen)
                 return _APItemIDToSongName;
             _APItemIDToSongName = new();
-            var Index = 2; //Song Items start at index 2 in the apworld, index 1 is Yarg Gem
             foreach (var i in SongNames)
-            {
-                _APItemIDToSongName[Index] = i.Key;
-                Index++;
-            }
+                _APItemIDToSongName[i.Value[2]] = i.Key;
             NeedsRegen = false;
             return _APItemIDToSongName;
         }

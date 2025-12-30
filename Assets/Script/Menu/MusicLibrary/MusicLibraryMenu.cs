@@ -466,8 +466,15 @@ namespace YARG.Menu.MusicLibrary
 
 
                     var AvailableSongs = APEvents.GetUnplayedAvailableLocations();
+                    var HasGoalSong = AvailableSongs.Remove(APEvents.GoalSong);
+                    var HasGoalItems = APEvents.GoalItemCount >= APEvents.GoalItemNeeded;
+                    var ShouldDisplayGoal =
+                        APEvents.goalDisplaySetting == APData.GoalDisplaySetting.alwaysvisible ||
+                        (HasGoalSong && APEvents.goalDisplaySetting == APData.GoalDisplaySetting.song) ||
+                        (HasGoalItems && APEvents.goalDisplaySetting == APData.GoalDisplaySetting.gems) ||
+                        (HasGoalItems && HasGoalSong && APEvents.goalDisplaySetting == APData.GoalDisplaySetting.both);
 
-                    if (AvailableSongs.Contains(APEvents.GoalSong))
+                    if (ShouldDisplayGoal)
                     {
                         var GoalSong = SongContainer.Songs.FirstOrDefault(x => x.Name == APEvents.GoalSong);
                         if (GoalSong != null)
@@ -475,7 +482,6 @@ namespace YARG.Menu.MusicLibrary
                             list.Add(new CategoryViewType("Archipelago GOAL Song", 1, new SongEntry[] { GoalSong }, RefreshAndReselect));
                             list.Add(new SongViewType(this, GoalSong));
                         }
-                        AvailableSongs.Remove(APEvents.GoalSong);
                     }
 
                     if (AvailableSongs.Count > 0)

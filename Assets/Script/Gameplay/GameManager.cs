@@ -290,6 +290,13 @@ namespace YARG.Gameplay
                     return;
                 }
             }
+            if (Keyboard.current.ctrlKey.isPressed && Keyboard.current.qKey.wasPressedThisFrame)
+            {
+                if (EndSong(true))
+                {
+                    return;
+                }
+            }
         }
 
         public void SetSongTime(double time, double delayTime = SONG_START_DELAY)
@@ -454,7 +461,7 @@ namespace YARG.Gameplay
         public double GetRelativeInputTime(double timeFromInputSystem)
             => _songRunner.GetRelativeInputTime(timeFromInputSystem);
 
-        private bool EndSong()
+        private bool EndSong(bool Force = false)
         {
             if (IsPractice)
             {
@@ -462,7 +469,7 @@ namespace YARG.Gameplay
                 return false;
             }
 
-            if (_songRunner.SongTime < SongLength + SONG_END_DELAY)
+            if (_songRunner.SongTime < SongLength + SONG_END_DELAY && !Force)
             {
                 return false;
             }
@@ -501,7 +508,14 @@ namespace YARG.Gameplay
 
             RecordScores(replayInfo);
 
-            APEvents.TryCheckSongLocation(this);
+            //Prevent checking the location if any player had their score invalidated;
+            var APCheckInvalid = false; // _players.Any(x => !ScoreContainer.IsSoloScoreValid(SongSpeed, x.Player));
+
+            //Prevent checking the location if nofail was enabled;
+            APCheckInvalid = false; // = SettingsManager.Settings.NoFailMode.Value;
+
+            if (!APCheckInvalid)
+                APEvents.TryCheckSongLocation(this);
 
             // Dispose the crowd handler
             CrowdEventHandler.Dispose();

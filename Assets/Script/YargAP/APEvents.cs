@@ -18,6 +18,9 @@ namespace YARG.Assets.Script.YargAP
     internal class APEvents
     {
         public static string GoalSong;
+        public static int GoalItemCount = 0;
+        public static int GoalItemNeeded = 0;
+        public static APData.GoalDisplaySetting goalDisplaySetting = APData.GoalDisplaySetting.both;
         public static GameManager CurrentSong = null;
         public static bool PrintChatMessages = true;
         public static bool PrintUnrelatedItems = false;
@@ -33,11 +36,16 @@ namespace YARG.Assets.Script.YargAP
             if (!_isConnected)
                 return;
 
-            foreach(var item in session.Items.AllItemsReceived)
+            GoalItemCount = 0;
+            foreach (var item in session.Items.AllItemsReceived)
             {
                 if (APData.APItemIDToHash().TryGetValue(item.ItemId, out var data))
                     RecievedSongs.Add(data);
+                if (item.ItemId == (long)APData.APFiller.YargGem)
+                    GoalItemCount++;
             }
+            Debug.Log($"Goal Progress {GoalItemCount}/{GoalItemNeeded}");
+            Debug.Log($"Unlocked Goal Song {RecievedSongs.Contains(APEvents.GoalSong)}");
         }
 
         public static HashSet<string> GetUnplayedAvailableLocations()
@@ -61,7 +69,7 @@ namespace YARG.Assets.Script.YargAP
                 var item = helper.DequeueItem();
 
                 //Item ID 1 is Yarg Gem, for now I just made it grant star power
-                if (item.ItemId == (long) APData.APFiller.YargGem && CurrentSong != null)
+                if (item.ItemId == (long) APData.APFiller.StarPower && CurrentSong != null)
                     foreach (var i in CurrentSong.Players)
                         ApplyStarPowerItem(i, CurrentSong);
             }
@@ -106,7 +114,7 @@ namespace YARG.Assets.Script.YargAP
             if (APData.SongHashToAPLocations().TryGetValue(gameManager.Song.Name, out var Locations))
                 session.Locations.CompleteLocationChecksAsync(Locations);
 
-            if (GoalSong != null && GoalSong == gameManager.Song.Name)
+            if (GoalSong != null && GoalSong == gameManager.Song.Name && GoalItemCount >= GoalItemNeeded)
                 session.SetGoalAchieved();
 
         }

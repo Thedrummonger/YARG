@@ -101,7 +101,7 @@ namespace YARG.Assets.Script.YargAP
             if (SlotData.ContainsKey("songlist"))
             {
                 var songlistObj = (JObject)SlotData["songlist"];
-                APData.SongNames = songlistObj.ToObject<Dictionary<string, object[]>>();
+                APData.SongNames = songlistObj.ToObject<Dictionary<string, int[]>>();
                 APData.NeedsRegen = true;
             }
             else
@@ -139,19 +139,39 @@ namespace YARG.Assets.Script.YargAP
                 return;
             }
 
-            ToastManager.ToastInformation("Connected to Archipelago server successfully!");
+            if (SlotData["Gems Required"] is long GoalItemsNeeded)
+            {
+                Debug.Log($"Gems Needed {GoalItemsNeeded}");
+                APEvents.GoalItemNeeded = (int)GoalItemsNeeded;
+            }
+            else
+            {
+                ToastManager.ToastError($"Could not get Goal Item Requirement. Report this to the APworld Devs!");
+                Debug.LogError($"Could not get Goal Song {JsonConvert.SerializeObject(SlotData)}");
+                APEvents.session.Socket.DisconnectAsync();
+                APEvents.session = null;
+                return;
+            }
+
+            if (SlotData.TryGetValue("Goal Song Visibility", out var GSV) && GSV is Int64 VI)
+            {
+                APEvents.goalDisplaySetting = (APData.GoalDisplaySetting) VI;
+            }
 
             APEvents.session.MessageLog.OnMessageReceived += APEvents.MessageLog_OnMessageReceived;
             APEvents.session.Items.ItemReceived += APEvents.Items_ItemReceived;
 
-            bool DeathLinkEnabled = false;
-            //We can use the yaml to enable death link and grab the option from slot data.
-            if (DeathLinkEnabled)
+            if (SlotData.TryGetValue("Death Link", out var DLO) && DLO is long DLI && DLI > 0)
             {
                 APEvents.deathLinkService = DeathLinkProvider.CreateDeathLinkService(APEvents.session);
                 APEvents.deathLinkService.EnableDeathLink();
                 APEvents.deathLinkService.OnDeathLinkReceived += APEvents.ProcessDeathLink;
+                APEvents.deathLinkType = DLI > 1 ? APData.DeathLinkType.Fail : APData.DeathLinkType.RockMeter;
+
+
             }
+
+            ToastManager.ToastInformation("Connected to Archipelago server successfully!");
 
             APEvents.UpdateRecievedSongs();
         }
@@ -165,7 +185,7 @@ namespace YARG.Assets.Script.YargAP
             APEvents.session.Items.ItemReceived -= APEvents.Items_ItemReceived;
             APEvents.GoalSong = null;
             APEvents.deathLinkService = null;
-            APData.SongNames = new Dictionary<string, object[]>();
+            APData.SongNames = new Dictionary<string, int[]>();
             APData.NeedsRegen = true;
         }
 
