@@ -9,9 +9,11 @@ using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using YARG.Core.Extensions;
 using YARG.Gameplay;
 using YARG.Gameplay.Player;
 using YARG.Menu.Persistent;
+using static UnityEngine.Rendering.DebugUI;
 
 namespace YARG.Assets.Script.YargAP
 {
@@ -28,6 +30,7 @@ namespace YARG.Assets.Script.YargAP
         public static DeathLinkService deathLinkService;
         public static APData.DeathLinkType deathLinkType = APData.DeathLinkType.RockMeter;
         public static int deathLinkOverride = 0;
+        public static System.Random random = new System.Random();
         public static bool _isConnected => APEvents.session?.Socket != null && APEvents.session.Socket.Connected;
 
         public static HashSet<string> RecievedSongs = new HashSet<string>();
@@ -89,7 +92,7 @@ namespace YARG.Assets.Script.YargAP
         {
             if (message is Archipelago.MultiClient.Net.MessageLog.Messages.ChatLogMessage chatMessage && !PrintChatMessages)
                 return;
-            if (message is Archipelago.MultiClient.Net.MessageLog.Messages.ItemSendLogMessage itemMessage && !itemMessage.IsReceiverTheActivePlayer && !PrintUnrelatedItems)
+            if (message is Archipelago.MultiClient.Net.MessageLog.Messages.ItemSendLogMessage itemMessage && !itemMessage.IsReceiverTheActivePlayer && !itemMessage.IsSenderTheActivePlayer && !PrintUnrelatedItems)
                 return;
             ToastManager.ToastMessage(message.ToString());
         }
@@ -136,6 +139,7 @@ namespace YARG.Assets.Script.YargAP
             if (CurrentSong == null || deathLinkOverride == 1)
                 return;
             var type = GetDeathLinkSetting();
+            ToastManager.ToastError($"{deathLink.Source} {deathLink.Cause}");
             switch (type)
             {
                 case APData.DeathLinkType.Fail:
@@ -150,6 +154,22 @@ namespace YARG.Assets.Script.YargAP
                     }
                     break;
             }
+        }
+
+        public static string GetRandomDeatLinkMessage(GameManager game, List<BasePlayer> players)
+        {
+            List<string> AllMessages = new List<string>() { $"failed to play {game.Song.Name}" };
+            foreach (var message in APData.DeathLinkMessages)
+            {
+                foreach(var player in players)
+                {
+                    var Valid = message.Valid(player.Player.Profile.CurrentInstrument);
+                    if (Valid)
+                        AllMessages.Add(message.Message);
+                }
+            }
+            var Selected = AllMessages.PickRandom(random);
+            return Selected;
         }
     }
 }

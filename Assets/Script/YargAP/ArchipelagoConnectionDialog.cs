@@ -84,28 +84,29 @@ namespace YARG.Assets.Script.YargAP
 
             GUILayout.Label("Deathlink Status");
 
-            string statusText = APEvents._isConnected ? (APEvents.deathLinkService != null ? "Enabled by YAML" : "Disabled by YAML") : "Not Connected";
+            string statusText = APEvents._isConnected ? (APEvents.deathLinkService != null ? "-Enabled by YAML" : "-Disabled by YAML") : "-Not Connected";
             GUILayout.Label(statusText);
 
             GUILayout.Label("Deathlink Setting Override");
 
-            if (APEvents._isConnected && APEvents.deathLinkService != null)
+            using (new GUIEnabledScope(APEvents._isConnected && APEvents.deathLinkService != null))
             {
                 if (GUILayout.Button(deathLinkOptions[APEvents.deathLinkOverride], GUILayout.Height(20)))
-                    showDeathlinkDropdown = !showDeathlinkDropdown;
-
-                if (showDeathlinkDropdown)
                 {
-                    for (int i = 0; i < deathLinkOptions.Length; i++)
-                    {
-                        if (GUILayout.Button(deathLinkOptions[i], GUILayout.Height(20)))
-                        {
-                            APEvents.deathLinkOverride = i;
-                            showDeathlinkDropdown = false;
-                        }
-                    }
+                    var NewVal = APEvents.deathLinkOverride + 1;
+                    if (NewVal >= deathLinkOptions.Length)
+                        NewVal = 0;
+                    APEvents.deathLinkOverride = NewVal;
                 }
             }
+
+            GUILayout.Label("Chat settings");
+
+            if (GUILayout.Button($"Print Chat Messages: {APEvents.PrintChatMessages}"))
+                APEvents.PrintChatMessages = !APEvents.PrintChatMessages;
+
+            if (GUILayout.Button($"Print Unrelated Items: {APEvents.PrintUnrelatedItems}"))
+                APEvents.PrintUnrelatedItems = !APEvents.PrintUnrelatedItems;
 
             GUILayout.EndVertical();
 
@@ -200,8 +201,7 @@ namespace YARG.Assets.Script.YargAP
                 APEvents.deathLinkService.EnableDeathLink();
                 APEvents.deathLinkService.OnDeathLinkReceived += APEvents.ProcessDeathLink;
                 APEvents.deathLinkType = DLI > 1 ? APData.DeathLinkType.Fail : APData.DeathLinkType.RockMeter;
-
-
+                
             }
 
             ToastManager.ToastInformation("Connected to Archipelago server successfully!");
