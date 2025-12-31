@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -232,8 +233,24 @@ namespace YARG.Gameplay
             Screen.sleepTimeout = _originalSleepTimeout;
         }
 
+        private bool HasShownGoalWarning = false;
         private void Update()
         {
+            if (!HasShownGoalWarning && APEvents.GoalSong == Song.Name && !APEvents.CanCompleteGoalSong() && !IsPractice)
+            {
+                StringBuilder Error = new StringBuilder();
+
+                Error.AppendLine("You have selected your goal song but you do not have the items needed to complete it!");
+                if (APEvents.GoalItemNeeded > APEvents.GoalItemCount)
+                    Error.AppendLine($"\nYou have {APEvents.GoalItemCount} Gems, but you need {APEvents.GoalItemNeeded}!");
+                if (!APEvents.RecievedSongs.Contains(APEvents.GoalSong))
+                    Error.AppendLine($"\nYou have not found your goal song item!");
+
+                SetPaused(!_pauseMenu.IsOpen);
+                DialogManager.Instance.ShowMessage("Goal Song Not Unlocked", Error.ToString());
+            }
+            HasShownGoalWarning = true;
+
             // Pause/unpause
             if (Keyboard.current.escapeKey.wasPressedThisFrame)
             {
@@ -726,8 +743,9 @@ namespace YARG.Gameplay
 
             if (!PlayerHasFailed)
             {
-                if (APEvents._isConnected && APEvents.deathLinkService != null)
-                    APEvents.deathLinkService.SendDeathLink(new Archipelago.MultiClient.Net.BounceFeatures.DeathLink.DeathLink(APEvents.session.Players.ActivePlayer.Name, $"Failed song {Song.Name}"));
+                if (APEvents._isConnected && APEvents.deathLinkService != null && APEvents.deathLinkOverride != 1)
+                    APEvents.deathLinkService.SendDeathLink(new Archipelago.MultiClient.Net.BounceFeatures.DeathLink.DeathLink(
+                        APEvents.session.Players.ActivePlayer.Name, APEvents.GetRandomDeatLinkMessage(this, _players)));
                 await ForceSongFail();
             }
         }

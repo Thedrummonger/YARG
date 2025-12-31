@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using TMPro;
 using UnityEngine;
@@ -464,24 +465,36 @@ namespace YARG.Menu.MusicLibrary
                     list.Add(new CategoryViewType(
                         Localize.Key("Menu.MusicLibrary.AllSongs"), songCount, SongContainer.Songs));
 
-
                     var AvailableSongs = APEvents.GetUnplayedAvailableLocations();
                     var HasGoalSong = AvailableSongs.Remove(APEvents.GoalSong);
                     var HasGoalItems = APEvents.GoalItemCount >= APEvents.GoalItemNeeded;
-                    var ShouldDisplayGoal =
+                    var ShouldDisplayGoalSong =
                         APEvents.goalDisplaySetting == APData.GoalDisplaySetting.alwaysvisible ||
                         (HasGoalSong && APEvents.goalDisplaySetting == APData.GoalDisplaySetting.song) ||
                         (HasGoalItems && APEvents.goalDisplaySetting == APData.GoalDisplaySetting.gems) ||
-                        (HasGoalItems && HasGoalSong && APEvents.goalDisplaySetting == APData.GoalDisplaySetting.both);
+                        (HasGoalSong && HasGoalItems && APEvents.goalDisplaySetting == APData.GoalDisplaySetting.both);
 
-                    if (ShouldDisplayGoal)
+                    if (ShouldDisplayGoalSong)
                     {
-                        var GoalSong = SongContainer.Songs.FirstOrDefault(x => x.Name == APEvents.GoalSong);
-                        if (GoalSong != null)
-                        {
-                            list.Add(new CategoryViewType("Archipelago GOAL Song", 1, new SongEntry[] { GoalSong }, RefreshAndReselect));
-                            list.Add(new SongViewType(this, GoalSong));
-                        }
+                        if (APEvents.goalDisplaySetting == APData.GoalDisplaySetting.song ||
+                            APEvents.goalDisplaySetting == APData.GoalDisplaySetting.alwaysvisible ||
+                            APEvents.goalDisplaySetting == APData.GoalDisplaySetting.both)
+                            list.Add(new CategoryViewType($"Gems {APEvents.GoalItemCount}\\{APEvents.GoalItemNeeded}", 0, new SongEntry[0], RefreshAndReselect));
+
+                        if (APEvents.goalDisplaySetting == APData.GoalDisplaySetting.gems ||
+                            APEvents.goalDisplaySetting == APData.GoalDisplaySetting.alwaysvisible ||
+                            APEvents.goalDisplaySetting == APData.GoalDisplaySetting.both)
+                            list.Add(new CategoryViewType($"Goal Song Item: {(HasGoalSong ? "Found" : "Missing")}", 0, new SongEntry[0], RefreshAndReselect));
+                    }
+
+                    var GoalSong = SongContainer.Songs.FirstOrDefault(x => x.Name == APEvents.GoalSong);
+                    if (GoalSong == null)
+                        ShouldDisplayGoalSong = false;
+
+                    if (ShouldDisplayGoalSong)
+                    {
+                        list.Add(new CategoryViewType("AP Goal Song", 1, new SongEntry[] { GoalSong }, RefreshAndReselect));
+                        list.Add(new SongViewType(this, GoalSong));
                     }
 
                     if (AvailableSongs.Count > 0)
@@ -498,7 +511,7 @@ namespace YARG.Menu.MusicLibrary
                         }
                         if (AvailableAPSongs.Count > 0)
                         {
-                            list.Add(new CategoryViewType("Archipelago Songs", AvailableAPSongs.Count, AvailableAPSongs.ToArray(), RefreshAndReselect));
+                            list.Add(new CategoryViewType("AP Songs", AvailableAPSongs.Count, AvailableAPSongs.ToArray(), RefreshAndReselect));
                             foreach (var song in AvailableAPSongs)
                                 list.Add(new SongViewType(this, song));
                         }

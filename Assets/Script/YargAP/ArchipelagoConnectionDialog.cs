@@ -25,7 +25,10 @@ namespace YARG.Assets.Script.YargAP
         [SerializeField] private string slotName = "";
         [SerializeField] private string password = "";
 
-        private Rect _windowRect = new Rect(20, 20, 360, 250);
+        private string[] deathLinkOptions = { "use yaml", "disabled", "instant", "one hit" };
+        private bool showDeathlinkDropdown = false;
+
+        private Rect _windowRect = new Rect(20, 20, 400, 260);
 
         private void Awake()
         {
@@ -45,11 +48,11 @@ namespace YARG.Assets.Script.YargAP
 
             _windowRect = GUI.Window(0xA1C4, _windowRect, DrawWindow, "Archipelago Connection");
         }
-
         private void DrawWindow(int id)
         {
-            GUILayout.BeginVertical();
+            GUILayout.BeginHorizontal();
 
+            GUILayout.BeginVertical(GUILayout.Width(180));
             GUILayout.Label("Address");
             using (new GUIEnabledScope(!APEvents._isConnected))
                 address = GUILayout.TextField(address);
@@ -63,7 +66,6 @@ namespace YARG.Assets.Script.YargAP
                 password = GUILayout.PasswordField(password, '*');
 
             GUILayout.Space(10);
-
             string buttonText = APEvents._isConnected ? "Disconnect" : "Connect";
             if (GUILayout.Button(buttonText, GUILayout.Height(28)))
             {
@@ -74,13 +76,45 @@ namespace YARG.Assets.Script.YargAP
                 else
                     DoConnect();
             }
+            GUILayout.EndVertical();
 
-            GUILayout.Space(6);
+            GUILayout.Space(20);
 
-            if (GUILayout.Button("Close"))
-                Show = false;
+            GUILayout.BeginVertical(GUILayout.Width(180));
+
+            GUILayout.Label("Deathlink Status");
+
+            string statusText = APEvents._isConnected ? (APEvents.deathLinkService != null ? "-Enabled by YAML" : "-Disabled by YAML") : "-Not Connected";
+            GUILayout.Label(statusText);
+
+            GUILayout.Label("Deathlink Setting Override");
+
+            using (new GUIEnabledScope(APEvents._isConnected && APEvents.deathLinkService != null))
+            {
+                if (GUILayout.Button(deathLinkOptions[APEvents.deathLinkOverride], GUILayout.Height(20)))
+                {
+                    var NewVal = APEvents.deathLinkOverride + 1;
+                    if (NewVal >= deathLinkOptions.Length)
+                        NewVal = 0;
+                    APEvents.deathLinkOverride = NewVal;
+                }
+            }
+
+            GUILayout.Label("Chat settings");
+
+            if (GUILayout.Button($"Print Chat Messages: {APEvents.PrintChatMessages}"))
+                APEvents.PrintChatMessages = !APEvents.PrintChatMessages;
+
+            if (GUILayout.Button($"Print Unrelated Items: {APEvents.PrintUnrelatedItems}"))
+                APEvents.PrintUnrelatedItems = !APEvents.PrintUnrelatedItems;
 
             GUILayout.EndVertical();
+
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(6);
+            if (GUILayout.Button("Close"))
+                Show = false;
 
             GUI.DragWindow(new Rect(0, 0, 10000, 20));
         }
@@ -167,8 +201,7 @@ namespace YARG.Assets.Script.YargAP
                 APEvents.deathLinkService.EnableDeathLink();
                 APEvents.deathLinkService.OnDeathLinkReceived += APEvents.ProcessDeathLink;
                 APEvents.deathLinkType = DLI > 1 ? APData.DeathLinkType.Fail : APData.DeathLinkType.RockMeter;
-
-
+                
             }
 
             ToastManager.ToastInformation("Connected to Archipelago server successfully!");
