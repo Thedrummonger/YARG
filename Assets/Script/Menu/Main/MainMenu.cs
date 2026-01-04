@@ -140,7 +140,7 @@ namespace YARG.Menu.Main
             // Pick whatever key you want
             if (Keyboard.current != null && Keyboard.current.f10Key.wasPressedThisFrame)
             {
-                ToggleArchipelagoDialog();
+                //ToggleArchipelagoDialog();
             }
         }
 
