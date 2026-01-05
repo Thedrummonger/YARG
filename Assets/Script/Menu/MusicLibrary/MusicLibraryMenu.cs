@@ -465,29 +465,23 @@ namespace YARG.Menu.MusicLibrary
                     list.Add(new CategoryViewType(
                         Localize.Key("Menu.MusicLibrary.AllSongs"), songCount, SongContainer.Songs));
 
-                    var AvailableSongs = APEvents.GetUnplayedAvailableLocations();
-                    var HasGoalSong = AvailableSongs.Remove(APEvents.GoalSong);
-                    var HasGoalItems = APEvents.GoalItemCount >= APEvents.GoalItemNeeded;
-                    var ShouldDisplayGoalSong =
-                        APEvents.goalDisplaySetting == APData.GoalDisplaySetting.alwaysvisible ||
-                        (HasGoalSong && APEvents.goalDisplaySetting == APData.GoalDisplaySetting.song) ||
-                        (HasGoalItems && APEvents.goalDisplaySetting == APData.GoalDisplaySetting.gems) ||
-                        (HasGoalSong && HasGoalItems && APEvents.goalDisplaySetting == APData.GoalDisplaySetting.both);
+                    var AvailableSongs = APEvents.APSongLocations.Where(x => x.VisibleInSongList()).ToArray();
+                    var ShouldDisplayGoalSong = APEvents.APGoalSong?.VisibleInSongList() ?? false;
 
                     if (ShouldDisplayGoalSong)
                     {
-                        if (APEvents.goalDisplaySetting == APData.GoalDisplaySetting.song ||
-                            APEvents.goalDisplaySetting == APData.GoalDisplaySetting.alwaysvisible ||
-                            APEvents.goalDisplaySetting == APData.GoalDisplaySetting.both)
-                            list.Add(new CategoryViewType($"Gems {APEvents.GoalItemCount}\\{APEvents.GoalItemNeeded}", 0, new SongEntry[0], RefreshAndReselect));
+                        if (APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.song ||
+                            APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.alwaysvisible ||
+                            APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.both)
+                            list.Add(new CategoryViewType($"Gems {APEvents.APGoalSong?.GoalItemCount}\\{APEvents.APGoalSong?.GoalItemNeeded}", 0, new SongEntry[0], RefreshAndReselect));
 
-                        if (APEvents.goalDisplaySetting == APData.GoalDisplaySetting.gems ||
-                            APEvents.goalDisplaySetting == APData.GoalDisplaySetting.alwaysvisible ||
-                            APEvents.goalDisplaySetting == APData.GoalDisplaySetting.both)
-                            list.Add(new CategoryViewType($"Goal Song Item: {(HasGoalSong ? "Found" : "Missing")}", 0, new SongEntry[0], RefreshAndReselect));
+                        if (APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.gems ||
+                            APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.alwaysvisible ||
+                            APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.both)
+                            list.Add(new CategoryViewType($"Goal Song Item: {(APEvents.APGoalSong?.HasReceivedSong()??false ? "Found" : "Missing")}", 0, new SongEntry[0], RefreshAndReselect));
                     }
 
-                    var GoalSong = SongContainer.Songs.FirstOrDefault(x => x.Name == APEvents.GoalSong);
+                    var GoalSong = APEvents.APGoalSong?.GetYargSongEntry();
                     if (GoalSong == null)
                         ShouldDisplayGoalSong = false;
 
@@ -497,22 +491,21 @@ namespace YARG.Menu.MusicLibrary
                         list.Add(new SongViewType(this, GoalSong));
                     }
 
-                    if (AvailableSongs.Count > 0)
+                    if (AvailableSongs.Any())
                     {
-                        Debug.Log(string.Join("|", AvailableSongs));
-                        var AvailableAPSongs = new List<SongEntry>();
+                        var availableAPSongs = new List<SongEntry>();
                         foreach (var APSong in AvailableSongs)
                         {
-                            var Song = SongContainer.Songs.FirstOrDefault(x => x.Name == APSong);
-                            if (Song != null)
-                                AvailableAPSongs.Add(Song);
+                            var song = APSong.GetYargSongEntry();
+                            if (song != null)
+                                availableAPSongs.Add(song);
                             else
                                 ToastManager.ToastError($"Failed to find song with song hash {APSong}!\nEnsure you are using the YARG official setlist!");
                         }
-                        if (AvailableAPSongs.Count > 0)
+                        if (availableAPSongs.Count > 0)
                         {
-                            list.Add(new CategoryViewType("AP Songs", AvailableAPSongs.Count, AvailableAPSongs.ToArray(), RefreshAndReselect));
-                            foreach (var song in AvailableAPSongs)
+                            list.Add(new CategoryViewType("AP Songs", availableAPSongs.Count, availableAPSongs.ToArray(), RefreshAndReselect));
+                            foreach (var song in availableAPSongs)
                                 list.Add(new SongViewType(this, song));
                         }
                     }

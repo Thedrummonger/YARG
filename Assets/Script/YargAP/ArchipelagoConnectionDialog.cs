@@ -54,24 +54,24 @@ namespace YARG.Assets.Script.YargAP
 
             GUILayout.BeginVertical(GUILayout.Width(180));
             GUILayout.Label("Address");
-            using (new GUIEnabledScope(!APEvents._isConnected))
+            using (new GUIEnabledScope(!APEvents.IsConnected))
                 address = GUILayout.TextField(address);
 
             GUILayout.Label("Slot Name");
-            using (new GUIEnabledScope(!APEvents._isConnected))
+            using (new GUIEnabledScope(!APEvents.IsConnected))
                 slotName = GUILayout.TextField(slotName);
 
             GUILayout.Label("Password");
-            using (new GUIEnabledScope(!APEvents._isConnected))
+            using (new GUIEnabledScope(!APEvents.IsConnected))
                 password = GUILayout.PasswordField(password, '*');
 
             GUILayout.Space(10);
-            string buttonText = APEvents._isConnected ? "Disconnect" : "Connect";
+            string buttonText = APEvents.IsConnected ? "Disconnect" : "Connect";
             if (GUILayout.Button(buttonText, GUILayout.Height(28)))
             {
                 GUI.FocusControl(null);
                 GUIUtility.keyboardControl = 0;
-                if (APEvents._isConnected)
+                if (APEvents.IsConnected)
                     DoDisconnect();
                 else
                     DoConnect();
@@ -84,19 +84,19 @@ namespace YARG.Assets.Script.YargAP
 
             GUILayout.Label("Deathlink Status");
 
-            string statusText = APEvents._isConnected ? (APEvents.deathLinkService != null ? "-Enabled by YAML" : "-Disabled by YAML") : "-Not Connected";
+            string statusText = APEvents.IsConnected ? (APEvents.DeathLinkService != null ? "-Enabled by YAML" : "-Disabled by YAML") : "-Not Connected";
             GUILayout.Label(statusText);
 
             GUILayout.Label("Deathlink Setting Override");
 
-            using (new GUIEnabledScope(APEvents._isConnected && APEvents.deathLinkService != null))
+            using (new GUIEnabledScope(APEvents.IsConnected && APEvents.DeathLinkService != null))
             {
-                if (GUILayout.Button(deathLinkOptions[APEvents.deathLinkOverride], GUILayout.Height(20)))
+                if (GUILayout.Button(deathLinkOptions[APEvents.DeathLinkOverride], GUILayout.Height(20)))
                 {
-                    var NewVal = APEvents.deathLinkOverride + 1;
+                    var NewVal = APEvents.DeathLinkOverride + 1;
                     if (NewVal >= deathLinkOptions.Length)
                         NewVal = 0;
-                    APEvents.deathLinkOverride = NewVal;
+                    APEvents.DeathLinkOverride = NewVal;
                 }
             }
 

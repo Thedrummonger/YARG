@@ -8,80 +8,49 @@ using System.Reflection;
 using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using UnityEngine;
 using YARG.Core.Extensions;
+using YARG.Core.Song;
 using YARG.Gameplay;
 using YARG.Gameplay.Player;
 using YARG.Menu.Persistent;
+using YARG.Song;
 using static UnityEngine.Rendering.DebugUI;
 
 namespace YARG.Assets.Script.YargAP
 {
     internal class APEvents
     {
-        public static string GoalSong;
-        public static int GoalItemCount = 0;
-        public static int GoalItemNeeded = 0;
-        public static APData.GoalDisplaySetting goalDisplaySetting = APData.GoalDisplaySetting.both;
-        public static GameManager CurrentSong = null;
-        public static bool PrintChatMessages = true;
-        public static bool PrintUnrelatedItems = false;
-        public static ArchipelagoSession session;
-        public static DeathLinkService deathLinkService;
-        public static APData.DeathLinkType deathLinkType = APData.DeathLinkType.RockMeter;
-        public static int deathLinkOverride = 0;
-        public static System.Random random = new System.Random();
-        public static bool _isConnected => APEvents.session?.Socket != null && APEvents.session.Socket.Connected;
-
-        public static HashSet<string> RecievedSongs = new HashSet<string>();
+        public static APData.APSongLocation[]   APSongLocations     = Array.Empty<APData.APSongLocation>();
+        public static APData.APGoalSong         APGoalSong          = null;
+        public static APData.GoalDisplaySetting GoalDisplaySetting  = APData.GoalDisplaySetting.both;
+        public static GameManager               CurrentSong         = null;
+        public static bool                      PrintChatMessages   = true;
+        public static bool                      PrintUnrelatedItems = false;
+        public static ArchipelagoSession        Session;
+        public static DeathLinkService          DeathLinkService;
+        public static APData.DeathLinkType      DeathLinkType       = APData.DeathLinkType.RockMeter;
+        public static int                       DeathLinkOverride   = 0;
+        private static readonly System.Random   SeedRng             = new();
+        public static bool                      IsConnected => Session?.Socket != null && APEvents.Session.Socket.Connected;
 
         public static APData.DeathLinkType GetDeathLinkSetting()
         {
-            if (deathLinkOverride == 2)
+            if (DeathLinkOverride == 2)
                 return APData.DeathLinkType.Fail;
-            if (deathLinkOverride == 3)
+            if (DeathLinkOverride == 3)
                 return APData.DeathLinkType.RockMeter;
-            return deathLinkType;
-        }
-
-        public static void UpdateRecievedSongs()
-        {
-            if (!_isConnected)
-                return;
-
-            GoalItemCount = 0;
-            foreach (var item in session.Items.AllItemsReceived)
-            {
-                if (APData.APItemIDToHash().TryGetValue(item.ItemId, out var data))
-                    RecievedSongs.Add(data);
-                if (item.ItemId == (long)APData.APFiller.YargGem)
-                    GoalItemCount++;
-            }
-            Debug.Log($"Goal Progress {GoalItemCount}/{GoalItemNeeded}");
-            Debug.Log($"Unlocked Goal Song {RecievedSongs.Contains(APEvents.GoalSong)}");
-        }
-
-        public static HashSet<string> GetUnplayedAvailableLocations()
-        {
-            HashSet<string> AvailableSongLocations = new();
-            if (!_isConnected)
-                return AvailableSongLocations;
-            foreach (var i in RecievedSongs)
-            {
-                if (APData.SongHashToAPLocations().TryGetValue(i, out var locations) &&  locations.Any(x => !session.Locations.AllLocationsChecked.Contains(x)))
-                    AvailableSongLocations.Add(i);
-            }
-            return AvailableSongLocations;
+            return DeathLinkType;
         }
 
         public static void Items_ItemReceived(Archipelago.MultiClient.Net.Helpers.ReceivedItemsHelper helper)
         {
-            UpdateRecievedSongs();
+            APGoalSong?.UpdateGoalItems();
             while (helper.Any())
             {
                 var item = helper.DequeueItem();
 
-                //Item ID 1 is Yarg Gem, for now I just made it grant star power
                 if (item.ItemId == (long) APData.APFiller.StarPower && CurrentSong != null)
                     foreach (var i in CurrentSong.Players)
                         ApplyStarPowerItem(i, CurrentSong);
@@ -100,15 +69,12 @@ namespace YARG.Assets.Script.YargAP
         private static MethodInfo _gainStarPower;
         public static void ApplyStarPowerItem(BasePlayer player, GameManager handler)
         {
-            if (handler == null)
-                return;
-
+            if (handler == null) return;
             Debug.Log("Processing Star Power Item");
-
             var engine = player.BaseEngine;
             if (engine == null) return;
 
-            //Since we can;t edit yarg core, we have to use reflection to call GainStarPower since it is private
+            //Since we can't edit yarg core, we have to use reflection to call GainStarPower since it is private
             _gainStarPower ??= engine.GetType().GetMethod("GainStarPower", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
             if (_gainStarPower == null)
@@ -121,22 +87,20 @@ namespace YARG.Assets.Script.YargAP
 
         internal static void TryCheckSongLocation(GameManager gameManager)
         {
-            if (!_isConnected || !RecievedSongs.Contains(gameManager.Song.Name))
-                return;
+            if (!IsConnected) return;
+            var matchingAPLocation = APSongLocations.FirstOrDefault(x => x.MatchesSongEntry(gameManager.Song));
 
-            if (APData.SongHashToAPLocations().TryGetValue(gameManager.Song.Name, out var Locations))
-                session.Locations.CompleteLocationChecksAsync(Locations);
+            if (matchingAPLocation != null && matchingAPLocation.CanCompleteLocation() && matchingAPLocation.MetPlayRequirements(gameManager))
+                Session.Locations.CompleteLocationChecksAsync(matchingAPLocation.LocationID1, matchingAPLocation.LocationID2);
 
-            if (GoalSong != null && GoalSong == gameManager.Song.Name && CanCompleteGoalSong())
-                session.SetGoalAchieved();
+            if (APGoalSong is not null && APGoalSong.MatchesSongEntry(gameManager.Song) && APGoalSong.CanCompleteLocation() && APGoalSong.MetPlayRequirements(gameManager))
+                Session.SetGoalAchieved();
 
         }
 
-        public static bool CanCompleteGoalSong() => _isConnected && RecievedSongs.Contains(GoalSong) && GoalItemCount >= GoalItemNeeded;
-
         public static void ProcessDeathLink(DeathLink deathLink)
         {
-            if (CurrentSong == null || deathLinkOverride == 1)
+            if (CurrentSong == null || DeathLinkOverride == 1)
                 return;
             var type = GetDeathLinkSetting();
             ToastManager.ToastError($"{deathLink.Source} {deathLink.Cause}");
@@ -168,8 +132,9 @@ namespace YARG.Assets.Script.YargAP
                         AllMessages.Add(message.Message);
                 }
             }
-            var Selected = AllMessages.PickRandom(random);
+            var Selected = AllMessages.PickRandom(SeedRng);
             return Selected;
         }
+
     }
 }

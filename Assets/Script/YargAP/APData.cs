@@ -3,12 +3,83 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
+using JetBrains.Annotations;
 using YARG.Core;
+using YARG.Core.Song;
+using YARG.Gameplay;
+using YARG.Song;
 
 namespace YARG.Assets.Script.YargAP
 {
-    internal class APData
+    internal static class APData
     {
+        public abstract class APSongData
+        {
+            public string SongName;
+            public string SongSource;
+            public long   ItemID;
+            public SongEntry GetYargSongEntry() => SongContainer.Songs.FirstOrDefault(x => x.Name == SongName && x.Source.Original == SongSource);
+            public bool HasReceivedSong() => APEvents.IsConnected &&
+                APEvents.Session.Items.AllItemsReceived.Any(x => x.ItemId == ItemID);
+
+            public bool MatchesSongEntry(SongEntry entry) => SongName == entry.Name && SongSource == entry.Source.Original;
+
+            public abstract bool CanCompleteLocation();
+
+            public abstract bool VisibleInSongList();
+
+            public bool MetPlayRequirements(GameManager gameManager)
+            {
+                //TODO when this is added
+                return true;
+            }
+        }
+
+        public class APGoalSong : APSongData
+        {
+            public APGoalSong(string name, string source, long itemID, int goalItemNeeded)
+            {
+                SongName = name;
+                SongSource = source;
+                ItemID = itemID;
+                GoalItemNeeded =  goalItemNeeded;
+            }
+            public int GoalItemCount  { get; private set; }  = 0;
+            public int GoalItemNeeded { get; }
+            public bool HasEnoughYargGems() => GoalItemCount >= GoalItemNeeded;
+
+            public void UpdateGoalItems() =>
+                GoalItemCount = APEvents.IsConnected
+                    ? APEvents.Session.Items.AllItemsReceived.Count(x => x.ItemId == (long) APData.APFiller.YargGem)
+                    : 0;
+            public override bool CanCompleteLocation() => HasReceivedSong() && HasEnoughYargGems();
+
+            public override bool VisibleInSongList() =>
+                APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.alwaysvisible ||
+                (HasReceivedSong() && APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.song) ||
+                (HasEnoughYargGems() && APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.gems) ||
+                (HasReceivedSong() && HasEnoughYargGems() && APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.both);
+        }
+        public class APSongLocation : APSongData
+        {
+            public APSongLocation(string name, string source, long loc1ID, long loc2ID, long itemID)
+            {
+                SongName = name;
+                SongSource = source;
+                ItemID = itemID;
+                LocationID1 = loc1ID;
+                LocationID2 = loc2ID;
+            }
+            public long LocationID1;
+            public long LocationID2;
+            public bool HasCheckedBothLocations() => APEvents.IsConnected &&
+                APEvents.Session.Locations.AllLocationsChecked.Contains(LocationID1) &&
+                APEvents.Session.Locations.AllLocationsChecked.Contains(LocationID2);
+            public override bool VisibleInSongList() => HasReceivedSong() && !HasCheckedBothLocations();
+            public override bool CanCompleteLocation() => HasReceivedSong() && !HasCheckedBothLocations();
+        }
+
         public static List<DeathLinkMessage> DeathLinkMessages = new()
         {
             new("got boo'd offstage."),
@@ -32,7 +103,6 @@ namespace YARG.Assets.Script.YargAP
             public bool Valid(Instrument instrument) => InstrumentTags.Count == 0 || InstrumentTags.Contains(instrument);
         }
 
-        public static bool NeedsRegen = true;
         public enum APFiller
         {
             YargGem = 1,
@@ -50,32 +120,6 @@ namespace YARG.Assets.Script.YargAP
             song = 1,
             gems = 2,
             both = 3
-        }
-
-        public static Dictionary<string, int[]> SongNames = new Dictionary<string, int[]>();
-
-        private static Dictionary<string, long[]> _SongNameToAPLocations;
-        public static Dictionary<string, long[]> SongHashToAPLocations()
-        {
-            if (_SongNameToAPLocations is not null && !NeedsRegen)
-                return _SongNameToAPLocations;
-            _SongNameToAPLocations = new();
-            foreach (var i in SongNames)
-                _SongNameToAPLocations[i.Key] = new long[] { i.Value[0], i.Value[1] };
-            NeedsRegen = false;
-            return _SongNameToAPLocations;
-        }
-
-        private static Dictionary<long, string> _APItemIDToSongName;
-        public static Dictionary<long, string> APItemIDToHash()
-        {
-            if (_APItemIDToSongName is not null && !NeedsRegen)
-                return _APItemIDToSongName;
-            _APItemIDToSongName = new();
-            foreach (var i in SongNames)
-                _APItemIDToSongName[i.Value[2]] = i.Key;
-            NeedsRegen = false;
-            return _APItemIDToSongName;
         }
     }
 }

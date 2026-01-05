@@ -12,6 +12,7 @@ using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using YARG.Menu.Persistent;
 using YARG.Song;
+using Object = System.Object;
 
 namespace YARG.Assets.Script.YargAP
 {
@@ -19,107 +20,119 @@ namespace YARG.Assets.Script.YargAP
     {
         public static void DoConnect(string ServerAddress, string slotName, string Password)
         {
-            if (APEvents._isConnected) return;
-            APEvents.session = ArchipelagoSessionFactory.CreateSession(ServerAddress);
-            var Result = APEvents.session.TryConnectAndLogin("YARG", slotName, Archipelago.MultiClient.Net.Enums.ItemsHandlingFlags.AllItems, password: Password);
+            if (APEvents.IsConnected) return;
+            APEvents.Session = ArchipelagoSessionFactory.CreateSession(ServerAddress);
+            var Result = APEvents.Session.TryConnectAndLogin("YARG", slotName, Archipelago.MultiClient.Net.Enums.ItemsHandlingFlags.AllItems, password: Password);
             if (Result is LoginFailure failure)
             {
                 ToastManager.ToastError("Failed to connect to Archipelago server: " + string.Join(Environment.NewLine, failure.Errors));
-                APEvents.session = null;
+                APEvents.Session = null;
                 return;
             }
 
-            var SlotData = APEvents.session.DataStorage.GetSlotData();
+            var SlotData = APEvents.Session.DataStorage.GetSlotData();
 
-            if (SlotData.ContainsKey("songlist"))
+            object SlotDataGoalSong;
+            object SlotDataGoalSongSource;
+            object SlotDataGemsRequired;
+            object SlotDataSongList;
+            object SlotDataGoalSongVisibility;
+            object SlotDataDeathLink;
+
+            string ConnectionError = null;
+
+            if (!SlotData.TryGetValue("Goal Song", out SlotDataGoalSong) || SlotDataGoalSong is not string)
+                ConnectionError = "Goal Song could not be parsed from slot data";
+
+            if (!SlotData.TryGetValue("Goal Song Source", out SlotDataGoalSongSource) || SlotDataGoalSongSource is not string)
+                ConnectionError = "Goal Song source could not be parsed from slot data";
+
+            if (!SlotData.TryGetValue("Gems Required", out SlotDataGemsRequired) || SlotDataGemsRequired is not long)
+                ConnectionError = "Required Gems could not be parsed from slot data";
+
+            if (!SlotData.TryGetValue("songlist", out SlotDataSongList) || SlotDataSongList is not JObject)
+                ConnectionError = "Song Data could not be parsed from slot data";
+
+            if (!SlotData.TryGetValue("Goal Song Visibility", out SlotDataGoalSongVisibility) || SlotDataGoalSongVisibility is not long)
+                ConnectionError = "Goal Song Visibility could not be parsed from slot data";
+
+            if (!SlotData.TryGetValue("Death Link", out SlotDataDeathLink) || SlotDataDeathLink is not long)
+                ConnectionError = "Death Link could not be parsed from slot data";
+
+            if (ConnectionError is not null)
             {
-                var songlistObj = (JObject) SlotData["songlist"];
-                APData.SongNames = songlistObj.ToObject<Dictionary<string, int[]>>();
-                APData.NeedsRegen = true;
-            }
-            else
-            {
-                ToastManager.ToastError($"Unable to parse song list. Report this to the APworld Devs!");
-                Debug.LogError($"Unable to parse song list {JsonConvert.SerializeObject(SlotData)}");
-                APEvents.session.Socket.DisconnectAsync();
-                APEvents.session = null;
+                DoDisconnect(true, $"Connection Failed:\n{ConnectionError}");
                 return;
             }
 
-            bool WasMissingSong = false;
-            foreach (var i in APData.SongNames)
-                if (!SongContainer.Songs.Any(x => x.Name == i.Key))
+            List<APData.APSongLocation> APSongLocations = new List<APData.APSongLocation>();
+            var BadSongs = new List<APData.APSongData>();
+            foreach (var song in ((JObject)SlotDataSongList!).ToObject<Dictionary<string, object[]>>())
+            {
+                if (song.Key == (string) SlotDataGoalSong && (string) song.Value[3] == (string) SlotDataGoalSongSource)
                 {
-                    WasMissingSong = true;
-                    Debug.LogError($"{i.Key} Was not found in the current yarg song list");
+                    APEvents.APGoalSong = new APData.APGoalSong(song.Key, (string) song.Value[3], (long) song.Value[2], (int) (long) SlotDataGemsRequired!);
+                    APEvents.APGoalSong?.UpdateGoalItems();
+                    if (SongContainer.Songs.All(x => !APEvents.APGoalSong.MatchesSongEntry(x)))
+                        BadSongs.Add(APEvents.APGoalSong);
+                    continue;
                 }
 
-            if (WasMissingSong)
-                DialogManager.Instance.ShowMessage("Missing Song Error", "One or more songs were not found in your YARG setlist\nEnsure you are using the YARG official setlist!");
+                var songLocation = new APData.APSongLocation(song.Key, (string) song.Value[3], (long) song.Value[0],
+                    (long) song.Value[1], (long) song.Value[2]);
+                APSongLocations.Add(songLocation);
 
-
-            if (SlotData["Goal Song"] is string GoalSongName && APData.SongNames.ContainsKey(GoalSongName))
-            {
-                Debug.Log($"Goal Song {GoalSongName}");
-                APEvents.GoalSong = GoalSongName;
+                if (SongContainer.Songs.All(x => !songLocation.MatchesSongEntry(x)))
+                    BadSongs.Add(songLocation);
             }
-            else
+
+            if (APEvents.APGoalSong is null)
             {
-                ToastManager.ToastError($"Could not get Goal Song. Report this to the APworld Devs!");
-                Debug.LogError($"Could not get Goal Song {JsonConvert.SerializeObject(SlotData)}");
-                APEvents.session.Socket.DisconnectAsync();
-                APEvents.session = null;
+                DoDisconnect(true, $"Connection Failed:\nFailed to find Goal song [{SlotDataGoalSongSource}] {SlotDataGoalSong} in APSongList");
                 return;
             }
 
-            if (SlotData["Gems Required"] is long GoalItemsNeeded)
+            if (BadSongs.Count > 0)
             {
-                Debug.Log($"Gems Needed {GoalItemsNeeded}");
-                APEvents.GoalItemNeeded = (int) GoalItemsNeeded;
+                var badList = string.Join(" | ",
+                    BadSongs.OrderBy(x => x.SongSource).ThenBy(x => x.SongName)
+                        .Select(x => $"[{x.SongSource}] {x.SongName}"));
+                DialogManager.Instance.ShowMessage("ERROR: Missing Songs!",
+                    $"The following songs were included in your seed but were not found in YARG:\n\n{badList}");
             }
-            else
-            {
-                ToastManager.ToastError($"Could not get Goal Item Requirement. Report this to the APworld Devs!");
-                Debug.LogError($"Could not get Goal Song {JsonConvert.SerializeObject(SlotData)}");
-                APEvents.session.Socket.DisconnectAsync();
-                APEvents.session = null;
-                return;
-            }
+            APEvents.APSongLocations = APSongLocations.ToArray();
+            APEvents.GoalDisplaySetting = (APData.GoalDisplaySetting) (long) SlotDataGoalSongVisibility!;
 
-            if (SlotData.TryGetValue("Goal Song Visibility", out var GSV) && GSV is Int64 VI)
-            {
-                APEvents.goalDisplaySetting = (APData.GoalDisplaySetting) VI;
-            }
+            APEvents.Session.MessageLog.OnMessageReceived += APEvents.MessageLog_OnMessageReceived;
+            APEvents.Session.Items.ItemReceived += APEvents.Items_ItemReceived;
 
-            APEvents.session.MessageLog.OnMessageReceived += APEvents.MessageLog_OnMessageReceived;
-            APEvents.session.Items.ItemReceived += APEvents.Items_ItemReceived;
-
-            if (SlotData.TryGetValue("Death Link", out var DLO) && DLO is long DLI && DLI > 0)
+            if ((long)SlotDataDeathLink > 0)
             {
-                APEvents.deathLinkService = DeathLinkProvider.CreateDeathLinkService(APEvents.session);
-                APEvents.deathLinkService.EnableDeathLink();
-                APEvents.deathLinkService.OnDeathLinkReceived += APEvents.ProcessDeathLink;
-                APEvents.deathLinkType = DLI > 1 ? APData.DeathLinkType.Fail : APData.DeathLinkType.RockMeter;
+                APEvents.DeathLinkService = DeathLinkProvider.CreateDeathLinkService(APEvents.Session);
+                APEvents.DeathLinkService.EnableDeathLink();
+                APEvents.DeathLinkService.OnDeathLinkReceived += APEvents.ProcessDeathLink;
+                APEvents.DeathLinkType = (long)SlotDataDeathLink  > 1 ? APData.DeathLinkType.Fail : APData.DeathLinkType.RockMeter;
 
             }
-
             ToastManager.ToastInformation("Connected to Archipelago server successfully!");
 
-            APEvents.UpdateRecievedSongs();
         }
 
-        public static void DoDisconnect()
+        public static void DoDisconnect(bool Early = false, string ErrorMessage = null)
         {
-            if (APEvents._isConnected)
-                APEvents.session.Socket.DisconnectAsync();
+            if (APEvents.IsConnected)
+                APEvents.Session.Socket.DisconnectAsync();
 
-            APEvents.session.MessageLog.OnMessageReceived -= APEvents.MessageLog_OnMessageReceived;
-            APEvents.session.Items.ItemReceived -= APEvents.Items_ItemReceived;
-            APEvents.GoalSong = null;
-            APEvents.deathLinkService = null;
-            APData.SongNames = new Dictionary<string, int[]>();
-            APData.NeedsRegen = true;
-            ToastManager.ToastInformation("Disconnected from Archipelago!");
+            APEvents.APGoalSong = null;
+            APEvents.DeathLinkService = null;
+            APEvents.APSongLocations = Array.Empty<APData.APSongLocation>();
+            if (Early) return;
+            APEvents.Session.MessageLog.OnMessageReceived -= APEvents.MessageLog_OnMessageReceived;
+            APEvents.Session.Items.ItemReceived -= APEvents.Items_ItemReceived;
+            if (ErrorMessage is null)
+                ToastManager.ToastInformation("Disconnected from Archipelago!");
+            else
+                ToastManager.ToastError(ErrorMessage);
         }
     }
 }
