@@ -103,7 +103,8 @@ namespace YARG.Menu.Main
 
         public void Archipelago()
         {
-            MenuManager.Instance.PushMenu(MenuManager.Menu.Archipelago);
+            //MenuManager.Instance.PushMenu(MenuManager.Menu.Archipelago);
+            ToggleArchipelagoDialog();
         }
 
         public void Exit()

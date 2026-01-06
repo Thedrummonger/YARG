@@ -136,5 +136,15 @@ namespace YARG.Assets.Script.YargAP
             return Selected;
         }
 
+        public static void SendEnergy(int amount)
+        {
+            if (!IsConnected) return;
+            string DeathLinkKey = $"EnergyLink{APEvents.Session.Players.ActivePlayer.Team}";
+            dynamic dataStorage = APEvents.Session.DataStorage[DeathLinkKey];
+            dynamic token = Newtonsoft.Json.Linq.JToken.FromObject(0);
+            dataStorage.Initialize(token);
+            APEvents.Session.DataStorage[DeathLinkKey] += amount;
+        }
+
     }
 }

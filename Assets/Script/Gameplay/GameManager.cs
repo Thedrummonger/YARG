@@ -499,6 +499,7 @@ namespace YARG.Gameplay
 #nullable enable
             ReplayInfo? replayInfo = null;
 #nullable disable
+            /*
             try
             {
                 _isReplaySaved = false;
@@ -508,6 +509,7 @@ namespace YARG.Gameplay
             {
                 YargLogger.LogException(e, "Failed to save replay!");
             }
+            */
 
             // Pass the score info to the stats screen
             GlobalVariables.State.ScoreScreenStats = new ScoreScreenStats
@@ -533,6 +535,8 @@ namespace YARG.Gameplay
 
             if (!APCheckInvalid)
                 APEvents.TryCheckSongLocation(this);
+
+            APEvents.SendEnergy(BandScore);
 
             // Dispose the crowd handler
             CrowdEventHandler.Dispose();
