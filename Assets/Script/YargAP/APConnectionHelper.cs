@@ -5,11 +5,14 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
+using YARG.Helpers;
 using YARG.Menu.Persistent;
 using YARG.Song;
 using Object = System.Object;
@@ -66,15 +69,16 @@ namespace YARG.Assets.Script.YargAP
             }
 
             List<APData.APSongLocation> APSongLocations = new List<APData.APSongLocation>();
+            APData.APGoalSong APGoalSong = null;
             var BadSongs = new List<APData.APSongData>();
             foreach (var song in ((JObject)SlotDataSongList!).ToObject<Dictionary<string, object[]>>())
             {
                 if (song.Key == (string) SlotDataGoalSong && (string) song.Value[3] == (string) SlotDataGoalSongSource)
                 {
-                    APEvents.APGoalSong = new APData.APGoalSong(song.Key, (string) song.Value[3], (long) song.Value[2], (int) (long) SlotDataGemsRequired!);
-                    APEvents.APGoalSong?.UpdateGoalItems();
-                    if (SongContainer.Songs.All(x => !APEvents.APGoalSong.MatchesSongEntry(x)))
-                        BadSongs.Add(APEvents.APGoalSong);
+                    APGoalSong = new APData.APGoalSong(song.Key, (string) song.Value[3], (long) song.Value[2], (int) (long) SlotDataGemsRequired!);
+                    APGoalSong.UpdateGoalItems();
+                    if (SongContainer.Songs.All(x => !APGoalSong.MatchesSongEntry(x)))
+                        BadSongs.Add(APGoalSong);
                     continue;
                 }
 
@@ -86,7 +90,7 @@ namespace YARG.Assets.Script.YargAP
                     BadSongs.Add(songLocation);
             }
 
-            if (APEvents.APGoalSong is null)
+            if (APGoalSong is null)
             {
                 DoDisconnect(true, $"Connection Failed:\nFailed to find Goal song [{SlotDataGoalSongSource}] {SlotDataGoalSong} in APSongList");
                 return;
@@ -101,21 +105,21 @@ namespace YARG.Assets.Script.YargAP
                     $"The following songs were included in your seed but were not found in YARG:\n\n{badList}");
             }
             APEvents.APSongLocations = APSongLocations.ToArray();
+            APEvents.APGoalSong = APGoalSong;
             APEvents.GoalDisplaySetting = (APData.GoalDisplaySetting) (long) SlotDataGoalSongVisibility!;
+            APEvents.DeathLinkType = (APData.DeathLinkType) (long) SlotDataDeathLink;
+            APEvents.DeathLinkYAML = (APData.DeathLinkType) (long) SlotDataDeathLink;
+            APEvents.DeathLinkService = APEvents.Session.CreateDeathLinkService();
 
             APEvents.Session.MessageLog.OnMessageReceived += APEvents.MessageLog_OnMessageReceived;
             APEvents.Session.Items.ItemReceived += APEvents.Items_ItemReceived;
+            APEvents.DeathLinkService.OnDeathLinkReceived += APEvents.ProcessDeathLink;
 
-            if ((long)SlotDataDeathLink > 0)
-            {
-                APEvents.DeathLinkService = DeathLinkProvider.CreateDeathLinkService(APEvents.Session);
-                APEvents.DeathLinkService.EnableDeathLink();
-                APEvents.DeathLinkService.OnDeathLinkReceived += APEvents.ProcessDeathLink;
-                APEvents.DeathLinkType = (long)SlotDataDeathLink  > 1 ? APData.DeathLinkType.Fail : APData.DeathLinkType.RockMeter;
+            APEvents.UpdateDeathLinkTag();
 
-            }
+            SaveConnectionCache(APEvents.Session, Password);
+
             ToastManager.ToastInformation("Connected to Archipelago server successfully!");
-
         }
 
         public static void DoDisconnect(bool Early = false, string ErrorMessage = null)
@@ -123,16 +127,52 @@ namespace YARG.Assets.Script.YargAP
             if (APEvents.IsConnected)
                 APEvents.Session.Socket.DisconnectAsync();
 
+            if (!Early)
+            {
+                APEvents.Session.MessageLog.OnMessageReceived -= APEvents.MessageLog_OnMessageReceived;
+                APEvents.Session.Items.ItemReceived -= APEvents.Items_ItemReceived;
+                APEvents.DeathLinkService.OnDeathLinkReceived -= APEvents.ProcessDeathLink;
+            }
+
+            APEvents.Session = null;
             APEvents.APGoalSong = null;
             APEvents.DeathLinkService = null;
             APEvents.APSongLocations = Array.Empty<APData.APSongLocation>();
-            if (Early) return;
-            APEvents.Session.MessageLog.OnMessageReceived -= APEvents.MessageLog_OnMessageReceived;
-            APEvents.Session.Items.ItemReceived -= APEvents.Items_ItemReceived;
+
             if (ErrorMessage is null)
                 ToastManager.ToastInformation("Disconnected from Archipelago!");
             else
                 ToastManager.ToastError(ErrorMessage);
+        }
+
+        private static string ConnectionCachePath = Path.Combine(PathHelper.PersistentDataPath, "APConnectionCache.json");
+        public static void SaveConnectionCache(ArchipelagoSession session, string password)
+        {
+            if (session is null || !session.Socket.Connected) return;
+            APData.ConnectionCache Cache = new APData.ConnectionCache()
+            {
+                IP = session.Socket.Uri.Host,
+                Port = session.Socket.Uri.Port,
+                SlotName = session.Players.ActivePlayer.Name,
+                Password = password,
+            };
+            File.WriteAllText(ConnectionCachePath, JsonUtility.ToJson(Cache));
+            Debug.Log($"Saved Connection Cache to {ConnectionCachePath}\n{JsonConvert.SerializeObject(Cache, Formatting.Indented)}");
+        }
+
+        public static APData.ConnectionCache LoadConnectionCache()
+        {
+            if (!File.Exists(ConnectionCachePath)) return null;
+            try
+            {
+                var content = File.ReadAllText(ConnectionCachePath);
+                return JsonUtility.FromJson<APData.ConnectionCache>(content);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return null;
+            }
         }
     }
 }

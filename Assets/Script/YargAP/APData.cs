@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -56,10 +57,10 @@ namespace YARG.Assets.Script.YargAP
             public override bool CanCompleteLocation() => HasReceivedSong() && HasEnoughYargGems();
 
             public override bool VisibleInSongList() =>
-                APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.alwaysvisible ||
-                (HasReceivedSong() && APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.song) ||
-                (HasEnoughYargGems() && APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.gems) ||
-                (HasReceivedSong() && HasEnoughYargGems() && APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.both);
+                APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.FULL ||
+                (HasReceivedSong() && APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.SONG) ||
+                (HasEnoughYargGems() && APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.GEMS) ||
+                (HasReceivedSong() && HasEnoughYargGems() && APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.BOTH);
         }
         public class APSongLocation : APSongData
         {
@@ -78,6 +79,14 @@ namespace YARG.Assets.Script.YargAP
                 APEvents.Session.Locations.AllLocationsChecked.Contains(LocationID2);
             public override bool VisibleInSongList() => HasReceivedSong() && !HasCheckedBothLocations();
             public override bool CanCompleteLocation() => HasReceivedSong() && !HasCheckedBothLocations();
+        }
+
+        public class ConnectionCache
+        {
+            public string IP;
+            public int    Port;
+            public string SlotName;
+            public string Password;
         }
 
         public static List<DeathLinkMessage> DeathLinkMessages = new()
@@ -103,23 +112,43 @@ namespace YARG.Assets.Script.YargAP
             public bool Valid(Instrument instrument) => InstrumentTags.Count == 0 || InstrumentTags.Contains(instrument);
         }
 
+        public static string GetDescription(this Enum value)
+        {
+            var field = value.GetType().GetField(value.ToString());
+            var attribute = (DescriptionAttribute)Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute));
+            return attribute?.Description ?? value.ToString();
+        }
+
         public enum APFiller
         {
             YargGem = 1,
             StarPower = 2
         }
+        public static APData.DeathLinkType[] DeathLinkValues = Enum.GetValues(typeof(APData.DeathLinkType)).Cast<APData.DeathLinkType>().ToArray();
         public enum DeathLinkType
         {
-            Fail = 1,
-            RockMeter = 2
+            [Description("Disabled")]
+            DISABLED  = 0,
+            [Description("One Hit")]
+            ONE_HIT = 1,
+            [Description("Instant")]
+            INSTANT = 2
+        }
+        public static APData.EnergyLinkType[] EnergyLinkValues = Enum.GetValues(typeof(APData.EnergyLinkType)).Cast<APData.EnergyLinkType>().ToArray();
+        public enum EnergyLinkType
+        {
+            [Description("Disabled")]
+            DISABLED = 0,
+            [Description("Enabled")]
+            ENABLED  = 1
         }
 
         public enum GoalDisplaySetting
         {
-            alwaysvisible = 0,
-            song = 1,
-            gems = 2,
-            both = 3
+            FULL = 0,
+            SONG = 1,
+            GEMS = 2,
+            BOTH = 3
         }
     }
 }

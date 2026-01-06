@@ -747,7 +747,7 @@ namespace YARG.Gameplay
 
             if (!PlayerHasFailed)
             {
-                if (APEvents.IsConnected && APEvents.DeathLinkService != null && APEvents.DeathLinkOverride != 1)
+                if (APEvents.IsConnected && APEvents.DeathLinkService != null && APEvents.DeathLinkType > 0)
                     APEvents.DeathLinkService.SendDeathLink(new Archipelago.MultiClient.Net.BounceFeatures.DeathLink.DeathLink(
                         APEvents.Session.Players.ActivePlayer.Name, APEvents.GetRandomDeatLinkMessage(this, _players)));
                 await ForceSongFail();

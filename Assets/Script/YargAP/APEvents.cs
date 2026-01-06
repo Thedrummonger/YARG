@@ -24,25 +24,18 @@ namespace YARG.Assets.Script.YargAP
     {
         public static APData.APSongLocation[]   APSongLocations     = Array.Empty<APData.APSongLocation>();
         public static APData.APGoalSong         APGoalSong          = null;
-        public static APData.GoalDisplaySetting GoalDisplaySetting  = APData.GoalDisplaySetting.both;
+        public static APData.GoalDisplaySetting GoalDisplaySetting  = APData.GoalDisplaySetting.BOTH;
         public static GameManager               CurrentSong         = null;
         public static bool                      PrintChatMessages   = true;
         public static bool                      PrintUnrelatedItems = false;
         public static ArchipelagoSession        Session;
         public static DeathLinkService          DeathLinkService;
-        public static APData.DeathLinkType      DeathLinkType       = APData.DeathLinkType.RockMeter;
-        public static int                       DeathLinkOverride   = 0;
+        public static APData.DeathLinkType      DeathLinkType       = APData.DeathLinkType.DISABLED;
+        public static APData.DeathLinkType      DeathLinkYAML       = APData.DeathLinkType.DISABLED;
+        public static APData.EnergyLinkType     EnergyLinkType      = APData.EnergyLinkType.ENABLED;
+        public static APData.EnergyLinkType     EnergyLinkYAML      = APData.EnergyLinkType.ENABLED;
         private static readonly System.Random   SeedRng             = new();
         public static bool                      IsConnected => Session?.Socket != null && APEvents.Session.Socket.Connected;
-
-        public static APData.DeathLinkType GetDeathLinkSetting()
-        {
-            if (DeathLinkOverride == 2)
-                return APData.DeathLinkType.Fail;
-            if (DeathLinkOverride == 3)
-                return APData.DeathLinkType.RockMeter;
-            return DeathLinkType;
-        }
 
         public static void Items_ItemReceived(Archipelago.MultiClient.Net.Helpers.ReceivedItemsHelper helper)
         {
@@ -100,16 +93,15 @@ namespace YARG.Assets.Script.YargAP
 
         public static void ProcessDeathLink(DeathLink deathLink)
         {
-            if (CurrentSong == null || DeathLinkOverride == 1)
+            if (CurrentSong == null || DeathLinkType <= APData.DeathLinkType.DISABLED)
                 return;
-            var type = GetDeathLinkSetting();
             ToastManager.ToastError($"{deathLink.Source} {deathLink.Cause}");
-            switch (type)
+            switch (DeathLinkType)
             {
-                case APData.DeathLinkType.Fail:
+                case APData.DeathLinkType.INSTANT:
                     _ = CurrentSong.ForceSongFail();
                     break;
-                case APData.DeathLinkType.RockMeter:
+                case APData.DeathLinkType.ONE_HIT:
                     //Set each players rock meter low enough that one missed note causes a fail.
                     foreach (var player in CurrentSong.Players)
                     {
@@ -144,6 +136,14 @@ namespace YARG.Assets.Script.YargAP
             dynamic token = Newtonsoft.Json.Linq.JToken.FromObject(0);
             dataStorage.Initialize(token);
             APEvents.Session.DataStorage[DeathLinkKey] += amount;
+        }
+
+        public static void UpdateDeathLinkTag()
+        {
+            if (DeathLinkType > APData.DeathLinkType.DISABLED)
+                DeathLinkService.EnableDeathLink();
+            else
+                DeathLinkService.DisableDeathLink();
         }
 
     }

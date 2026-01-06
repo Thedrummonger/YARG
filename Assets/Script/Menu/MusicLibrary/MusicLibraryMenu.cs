@@ -470,14 +470,14 @@ namespace YARG.Menu.MusicLibrary
 
                     if (ShouldDisplayGoalSong)
                     {
-                        if (APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.song ||
-                            APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.alwaysvisible ||
-                            APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.both)
+                        if (APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.SONG ||
+                            APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.FULL ||
+                            APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.BOTH)
                             list.Add(new CategoryViewType($"Gems {APEvents.APGoalSong?.GoalItemCount}\\{APEvents.APGoalSong?.GoalItemNeeded}", 0, new SongEntry[0], RefreshAndReselect));
 
-                        if (APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.gems ||
-                            APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.alwaysvisible ||
-                            APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.both)
+                        if (APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.GEMS ||
+                            APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.FULL ||
+                            APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.BOTH)
                             list.Add(new CategoryViewType($"Goal Song Item: {(APEvents.APGoalSong?.HasReceivedSong()??false ? "Found" : "Missing")}", 0, new SongEntry[0], RefreshAndReselect));
                     }
 
