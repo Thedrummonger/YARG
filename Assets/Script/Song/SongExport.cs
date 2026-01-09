@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using Newtonsoft.Json;
+using UnityEngine.InputSystem;
 using YARG.Core.Song;
 using YARG.Core.Utility;
 
@@ -69,37 +71,40 @@ namespace YARG.Song
         {
             var songs = new List<OuvertSongData>();
 
+            var SelectedFolder = Path.GetDirectoryName(path);
+            var Devjson = Path.Join(SelectedFolder, "SongData.json");
+            var pyFormatted = Path.Join(SelectedFolder, "SongDictTemplate.txt");
+
+            StringBuilder PythonFile = new StringBuilder();
+            PythonFile.AppendLine("Songs: Dict[str, SongMeta] = {");
+
             // Convert SongInfo to OuvertSongData
             foreach (var song in SongContainer.Songs)
             {
-                if(RichTextUtils.StripRichTextTags(song.Playlist) == "Unknown Playlist")
+                songs.Add(new OuvertSongData
                 {
-                    songs.Add(new OuvertSongData
-                    {
-                        songName = RichTextUtils.StripRichTextTags(song.Name),
-                        artistName = RichTextUtils.StripRichTextTags(song.Artist),
-                        album = RichTextUtils.StripRichTextTags(song.Album),
-                        genre = RichTextUtils.StripRichTextTags(song.Genre),
-                        charter = RichTextUtils.StripRichTextTags(song.Charter),
-                        year = RichTextUtils.StripRichTextTags(song.UnmodifiedYear),
-                        songLength = (ulong)song.SongLengthMilliseconds
-                    });
-                }
-                else
+                    songName = RichTextUtils.StripRichTextTags(song.Name),
+                    artistName = RichTextUtils.StripRichTextTags(song.Artist),
+                    album = RichTextUtils.StripRichTextTags(song.Album),
+                    playlist = RichTextUtils.StripRichTextTags(song.Playlist) == "Unknown Playlist" ? null : RichTextUtils.StripRichTextTags(song.Playlist),
+                    genre = RichTextUtils.StripRichTextTags(song.Genre),
+                    charter = RichTextUtils.StripRichTextTags(song.Charter),
+                    year = RichTextUtils.StripRichTextTags(song.UnmodifiedYear),
+                    songLength = (ulong)song.SongLengthMilliseconds
+                });
+
+                PythonFile.Append("    ").Append('"').Append(song.Name).Append('"').Append(": SongMeta(")
+                    .Append('"').Append(song.Source.Original).Append('"').Append(", ")
+                    .Append('"').Append(song.Source.Original).Append('"').Append(", ");
+                for (var i = 0; i < 10; i++)
                 {
-                    songs.Add(new OuvertSongData
-                    {
-                        songName = RichTextUtils.StripRichTextTags(song.Name),
-                        artistName = RichTextUtils.StripRichTextTags(song.Artist),
-                        album = RichTextUtils.StripRichTextTags(song.Album),
-                        playlist = RichTextUtils.StripRichTextTags(song.Playlist),
-                        genre = RichTextUtils.StripRichTextTags(song.Genre),
-                        charter = RichTextUtils.StripRichTextTags(song.Charter),
-                        year = RichTextUtils.StripRichTextTags(song.UnmodifiedYear),
-                        songLength = (ulong)song.SongLengthMilliseconds
-                    });
+                    PythonFile.Append(" None");
+                        if (i == 9)
+                            PythonFile.Append(',');
                 }
+                PythonFile.AppendLine("),");
             }
+            PythonFile.Append('}');
 
             // Create file
             var json = JsonConvert.SerializeObject(songs, Formatting.Indented, new JsonSerializerSettings
@@ -107,6 +112,11 @@ namespace YARG.Song
                 NullValueHandling = NullValueHandling.Ignore
             });
             File.WriteAllText(path, json);
+            File.WriteAllText(pyFormatted, PythonFile.ToString());
+            File.WriteAllText(Devjson, JsonConvert.SerializeObject(SongContainer.Songs, Formatting.Indented, new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore
+            }));
         }
     }
 }

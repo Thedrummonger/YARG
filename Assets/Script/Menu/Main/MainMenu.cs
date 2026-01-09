@@ -101,6 +101,12 @@ namespace YARG.Menu.Main
             SettingsMenu.Instance.gameObject.SetActive(true);
         }
 
+        public void Archipelago()
+        {
+            //MenuManager.Instance.PushMenu(MenuManager.Menu.Archipelago);
+            ToggleArchipelagoDialog();
+        }
+
         public void Exit()
         {
 #if UNITY_EDITOR
@@ -135,7 +141,7 @@ namespace YARG.Menu.Main
             // Pick whatever key you want
             if (Keyboard.current != null && Keyboard.current.f10Key.wasPressedThisFrame)
             {
-                ToggleArchipelagoDialog();
+                //ToggleArchipelagoDialog();
             }
         }
 
