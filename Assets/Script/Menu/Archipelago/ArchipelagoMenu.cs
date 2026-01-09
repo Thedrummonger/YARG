@@ -53,9 +53,10 @@ namespace YARG.Menu.ArchipelagoMenu
         {
             APEvents.PrintChatMessages = PrintChat.isOn;
             APEvents.PrintUnrelatedItems = PrintUnrelatedItems.isOn;
-            APEvents.deathLinkOverride = DeathLinkMode.value;
+            APEvents.DeathLinkType = DeathLinkMode.value >= APData.DeathLinkValues.Length ? APEvents.DeathLinkYAML : APData.DeathLinkValues[DeathLinkMode.value];
+            APEvents.UpdateDeathLinkTag();
 
-            Debug.Log($"{APEvents.PrintChatMessages} | {APEvents.PrintUnrelatedItems} | {APEvents.deathLinkOverride}");
+            Debug.Log($"{APEvents.PrintChatMessages} | {APEvents.PrintUnrelatedItems} | {APEvents.DeathLinkType}");
         }
 
         private void OnDisable()
