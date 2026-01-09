@@ -1,6 +1,5 @@
 ﻿using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
-using Mono.Unix.Native;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
