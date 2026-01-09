@@ -536,7 +536,8 @@ namespace YARG.Gameplay
             if (!APCheckInvalid)
                 APEvents.TryCheckSongLocation(this);
 
-            APEvents.SendEnergy(BandScore);
+            if (APEvents.EnergyLinkType > APData.EnergyLinkType.DISABLED)
+                APEvents.SendEnergy(BandScore);
 
             // Dispose the crowd handler
             CrowdEventHandler.Dispose();

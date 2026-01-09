@@ -37,6 +37,8 @@ namespace YARG.Assets.Script.YargAP
         private static readonly System.Random   SeedRng             = new();
         public static bool                      IsConnected => Session?.Socket != null && APEvents.Session.Socket.Connected;
 
+        public static string DeathLinkKey => IsConnected ? $"EnergyLink{Session.Players.ActivePlayer.Team}" : "";
+
         public static void Items_ItemReceived(Archipelago.MultiClient.Net.Helpers.ReceivedItemsHelper helper)
         {
             APGoalSong?.UpdateGoalItems();
@@ -128,14 +130,27 @@ namespace YARG.Assets.Script.YargAP
             return Selected;
         }
 
+        const long minScale = 20000;
+        const long maxScale = 1000000;
         public static void SendEnergy(int amount)
         {
             if (!IsConnected) return;
-            string DeathLinkKey = $"EnergyLink{APEvents.Session.Players.ActivePlayer.Team}";
-            dynamic dataStorage = APEvents.Session.DataStorage[DeathLinkKey];
+
+            int AmountOfLocationsTotal = Session.Locations.AllLocations.Count;
+            int AmountOfLocationsChecked = Session.Locations.AllLocationsChecked.Count;
+            double completionPercentage = AmountOfLocationsChecked / AmountOfLocationsTotal;
+            double scale = minScale + (completionPercentage * (maxScale - minScale));
+            long Energy = (long)(amount * scale);
+
+            InitializeEnergyLink();
+            Session.DataStorage[DeathLinkKey] += Energy;
+        }
+
+        public static void InitializeEnergyLink()
+        {
+            dynamic dataStorage = Session.DataStorage[DeathLinkKey];
             dynamic token = Newtonsoft.Json.Linq.JToken.FromObject(0);
             dataStorage.Initialize(token);
-            APEvents.Session.DataStorage[DeathLinkKey] += amount;
         }
 
         public static void UpdateDeathLinkTag()

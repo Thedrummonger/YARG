@@ -41,6 +41,7 @@ namespace YARG.Assets.Script.YargAP
             object SlotDataSongList;
             object SlotDataGoalSongVisibility;
             object SlotDataDeathLink;
+            object SlotDataEnergyLink;
 
             string ConnectionError = null;
 
@@ -61,6 +62,9 @@ namespace YARG.Assets.Script.YargAP
 
             if (!SlotData.TryGetValue("Death Link", out SlotDataDeathLink) || SlotDataDeathLink is not long)
                 ConnectionError = "Death Link could not be parsed from slot data";
+
+            if (!SlotData.TryGetValue("Energy Link", out SlotDataEnergyLink) || SlotDataEnergyLink is not long)
+                ConnectionError = "Energy Link could not be parsed from slot data";
 
             if (ConnectionError is not null)
             {
@@ -109,6 +113,8 @@ namespace YARG.Assets.Script.YargAP
             APEvents.GoalDisplaySetting = (APData.GoalDisplaySetting) (long) SlotDataGoalSongVisibility!;
             APEvents.DeathLinkType = (APData.DeathLinkType) (long) SlotDataDeathLink;
             APEvents.DeathLinkYAML = (APData.DeathLinkType) (long) SlotDataDeathLink;
+            APEvents.EnergyLinkType = (APData.EnergyLinkType) (long) SlotDataEnergyLink;
+            APEvents.EnergyLinkYAML = (APData.EnergyLinkType) (long) SlotDataEnergyLink;
             APEvents.DeathLinkService = APEvents.Session.CreateDeathLinkService();
 
             APEvents.Session.MessageLog.OnMessageReceived += APEvents.MessageLog_OnMessageReceived;
