@@ -37,6 +37,9 @@ namespace YARG.Assets.Script.YargAP
         private static readonly System.Random   SeedRng             = new();
         public static bool                      IsConnected => Session?.Socket != null && APEvents.Session.Socket.Connected;
 
+        const long minScale = 20000;
+        const long maxScale = 1000000;
+
         public static string DeathLinkKey => IsConnected ? $"EnergyLink{Session.Players.ActivePlayer.Team}" : "";
 
         public static void Items_ItemReceived(Archipelago.MultiClient.Net.Helpers.ReceivedItemsHelper helper)
@@ -130,20 +133,41 @@ namespace YARG.Assets.Script.YargAP
             return Selected;
         }
 
-        const long minScale = 20000;
-        const long maxScale = 1000000;
         public static void SendEnergy(int amount)
         {
             if (!IsConnected) return;
 
-            int AmountOfLocationsTotal = Session.Locations.AllLocations.Count;
-            int AmountOfLocationsChecked = Session.Locations.AllLocationsChecked.Count;
+            try
+            {
+                InitializeEnergyLink();
+                long Energy = ApplyScale(amount, Session.Locations.AllLocations.Count, Session.Locations.AllLocationsChecked.Count);
+                Session.DataStorage[DeathLinkKey] += Energy;
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                ToastManager.ToastError(e.ToString());
+            }
+        }
+
+        public static long ApplyScale(long Score, double AmountOfLocationsTotal, double AmountOfLocationsChecked)
+        {
             double completionPercentage = AmountOfLocationsChecked / AmountOfLocationsTotal;
             double scale = minScale + (completionPercentage * (maxScale - minScale));
-            long Energy = (long)(amount * scale);
+            return (long) (Score * scale);
+        }
 
-            InitializeEnergyLink();
-            Session.DataStorage[DeathLinkKey] += Energy;
+        public static void TestScaleFactor()
+        {
+            var Score = 200_000;
+            var TotalLocations = 20;
+
+            Dictionary<int, long> Tests = new Dictionary<int, long>();
+            for (var checkedLocations = 0; checkedLocations <= TotalLocations; checkedLocations++)
+            {
+                Tests[checkedLocations] = ApplyScale(Score, TotalLocations, checkedLocations);
+            }
+            Debug.Log(Newtonsoft.Json.JsonConvert.SerializeObject(Tests,  Newtonsoft.Json.Formatting.Indented));
         }
 
         public static void InitializeEnergyLink()
