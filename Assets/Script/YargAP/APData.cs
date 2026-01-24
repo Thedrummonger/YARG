@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using JetBrains.Annotations;
+using Newtonsoft.Json.Linq;
 using YARG.Core;
 using YARG.Core.Song;
 using YARG.Gameplay;
@@ -20,9 +21,28 @@ namespace YARG.Assets.Script.YargAP
             public string SongName;
             public string SongSource;
             public long   ItemID;
+            public string Instrument;
             public SongEntry GetYargSongEntry() => SongContainer.Songs.FirstOrDefault(x => x.Name == SongName && x.Source.Original == SongSource);
             public bool HasReceivedSong() => APEvents.IsConnected &&
                 APEvents.Session.Items.AllItemsReceived.Any(x => x.ItemId == ItemID);
+
+            public bool UsedMatchingInstrument(GameManager gameManager)
+            {
+                if (Instrument is null) return true;
+                var usedInstruments = new HashSet<string>();
+                foreach (var player in gameManager.Players)
+                    if (InstrumentToPythonInstrumentList.TryGetValue(player.Player.Profile.CurrentInstrument, out var inst))
+                        usedInstruments.Add(inst);
+                return usedInstruments.Contains(Instrument);
+            }
+
+            public bool HasReceiveInstrumentItem()
+            {
+                if (!APEvents.IsConnected) return false;
+                if (Instrument is null) return true;
+                if (!pythonInstToItemName.TryGetValue(Instrument, out var inst)){ return false;}
+                return APEvents.AllReceivedInstruments.Contains(inst);
+            }
 
             public bool MatchesSongEntry(SongEntry entry) => SongName == entry.Name && SongSource == entry.Source.Original;
 
@@ -32,19 +52,21 @@ namespace YARG.Assets.Script.YargAP
 
             public bool MetPlayRequirements(GameManager gameManager)
             {
-                //TODO when this is added
+                if (!UsedMatchingInstrument(gameManager))
+                    return false;
                 return true;
             }
         }
 
         public class APGoalSong : APSongData
         {
-            public APGoalSong(string name, string source, long itemID, int goalItemNeeded)
+            public APGoalSong(string name, int GoalItems, SongMetadata meta)
             {
                 SongName = name;
-                SongSource = source;
-                ItemID = itemID;
-                GoalItemNeeded =  goalItemNeeded;
+                SongSource = meta.Source;
+                ItemID = meta.ItemId;
+                GoalItemNeeded = GoalItems;
+                Instrument = meta.Instrument;
             }
             public int GoalItemCount  { get; private set; }  = 0;
             public int GoalItemNeeded { get; }
@@ -54,7 +76,8 @@ namespace YARG.Assets.Script.YargAP
                 GoalItemCount = APEvents.IsConnected
                     ? APEvents.Session.Items.AllItemsReceived.Count(x => x.ItemId == (long) APData.APFiller.YargGem)
                     : 0;
-            public override bool CanCompleteLocation() => HasReceivedSong() && HasEnoughYargGems();
+
+            public override bool CanCompleteLocation() => HasReceivedSong() && HasReceiveInstrumentItem() && HasEnoughYargGems();
 
             public override bool VisibleInSongList() =>
                 APEvents.GoalDisplaySetting == APData.GoalDisplaySetting.FULL ||
@@ -64,21 +87,24 @@ namespace YARG.Assets.Script.YargAP
         }
         public class APSongLocation : APSongData
         {
-            public APSongLocation(string name, string source, long loc1ID, long loc2ID, long itemID)
+            public APSongLocation(string name, SongMetadata meta)
             {
                 SongName = name;
-                SongSource = source;
-                ItemID = itemID;
-                LocationID1 = loc1ID;
-                LocationID2 = loc2ID;
+                SongSource = meta.Source;
+                ItemID = meta.ItemId;
+                LocationID1 = meta.Loc1Id;
+                LocationID2 = meta.Loc2Id;
+                LocationID3 = meta.Loc3Id;
+                Instrument = meta.Instrument;
             }
             public long LocationID1;
             public long LocationID2;
+            public long LocationID3;
             public bool HasCheckedBothLocations() => APEvents.IsConnected &&
                 APEvents.Session.Locations.AllLocationsChecked.Contains(LocationID1) &&
                 APEvents.Session.Locations.AllLocationsChecked.Contains(LocationID2);
             public override bool VisibleInSongList() => HasReceivedSong() && !HasCheckedBothLocations();
-            public override bool CanCompleteLocation() => HasReceivedSong() && !HasCheckedBothLocations();
+            public override bool CanCompleteLocation() => HasReceivedSong() && HasReceiveInstrumentItem() && !HasCheckedBothLocations();
         }
 
         public class ConnectionCache
@@ -150,5 +176,102 @@ namespace YARG.Assets.Script.YargAP
             GEMS = 2,
             BOTH = 3
         }
+        public class SongMetadata
+        {
+            public long Loc1Id { get; set; }
+            public long Loc2Id { get; set; }
+            public long Loc3Id { get; set; }
+            public long ItemId { get; set; }
+            public string Source { get; set; }
+            public string Instrument { get; set; }
+
+            public static SongMetadata FromArray(JArray array)
+            {
+                var result = new SongMetadata
+                {
+                    Loc1Id = array[0].ToObject<long>(),
+                    Loc2Id = array[1].ToObject<long>(),
+                    Loc3Id = array[2].ToObject<long>(),
+                    ItemId = array[3].ToObject<long>(),
+                    Source = array[4].ToObject<string>()
+                };
+
+                if (array.Count > 5)
+                    result.Instrument = array[5].ToObject<string>();
+                else
+                    result.Instrument = null;
+
+                return result;
+            }
+        }
+
+        public class YargSlotData
+        {
+            public string                           GoalSong           { get; set; }
+            public string                           GoalSongSource     { get; set; }
+            public Dictionary<string, SongMetadata> Songlist           { get; set; }
+            public int                              GemsRequired       { get; set; }
+            public int                              GoalSongVisibility { get; set; }
+            public int                              DeathLink          { get; set; }
+            public int                              EnergyLink         { get; set; }
+            public int                              InstrumentShuffle  { get; set; }
+
+            public static YargSlotData Parse(Dictionary<string, object> slotData)
+            {
+                var result = new YargSlotData
+                {
+                    GoalSong = slotData["Goal Song"].ToString(),
+                    GoalSongSource = slotData["Goal Song Source"].ToString(),
+                    GemsRequired = Convert.ToInt32(slotData["Gems Required"]),
+                    GoalSongVisibility = Convert.ToInt32(slotData["Goal Song Visibility"]),
+                    DeathLink = Convert.ToInt32(slotData["Death Link"]),
+                    EnergyLink = Convert.ToInt32(slotData["Energy Link"]),
+                    InstrumentShuffle = Convert.ToInt32(slotData["Instrument Shuffle"]),
+                    Songlist = new Dictionary<string, SongMetadata>()
+                };
+
+                var songlistJson = slotData["songlist"] as JObject;
+                foreach (var song in songlistJson)
+                    result.Songlist[song.Key] = SongMetadata.FromArray(song.Value as JArray);
+
+                return result;
+            }
+        }
+        public static readonly Dictionary<Instrument, string> InstrumentToPythonInstrumentList = new Dictionary<Instrument, string>
+        {
+            { Instrument.FiveFretGuitar, "guitar5F" },
+            { Instrument.FiveFretBass, "bass5F" },
+            { Instrument.FiveFretRhythm, "rhythm5F" },
+            { Instrument.FiveFretCoopGuitar, "guitar5F" },
+
+            { Instrument.SixFretGuitar, "guitar5F" },
+            { Instrument.SixFretBass, "bass5F" },
+            { Instrument.SixFretRhythm, "rhythm5F" },
+            { Instrument.SixFretCoopGuitar, "guitar5F" },
+
+            { Instrument.FourLaneDrums, "drums" },
+            { Instrument.ProDrums, "drums" },
+            { Instrument.FiveLaneDrums, "drums" },
+            { Instrument.EliteDrums, "drums" },
+
+            { Instrument.Keys, "keys5F" },
+            { Instrument.ProKeys, "keysPro" },
+
+            { Instrument.Vocals, "vocals" },
+            { Instrument.Harmony, "harmony2" }
+        };
+
+        public static Dictionary<string, string> pythonInstToItemName = new Dictionary<string, string>
+        {
+            { "guitar5F", "Guitar" },
+            { "bass5F", "Bass" },
+            { "rhythm5F", "Rhythm" },
+            { "drums", "Drums" },
+            { "keys5F", "Keys" },
+            { "keysPro", "Pro Keys" },
+            { "vocals", "Vocals" },
+            { "harmony2", "2 Part Harmony" },
+            { "harmony3", "3 Part Harmony" }
+        };
     }
 }
