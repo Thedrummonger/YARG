@@ -62,7 +62,7 @@ namespace YARG.Assets.Script.YargAP
         public static void UpdateRecievedInstruments()
         {
             if (!APEvents.IsConnected) return;
-            HashSet<string> AllInstItems = APData.pythonInstToItemName.Values.ToHashSet();
+            HashSet<string> AllInstItems = APData.APInstrumentKeyToName.Values.ToHashSet();
             foreach (var itemInfo in APEvents.Session.Items.AllItemsReceived)
             {
                 if (AllInstItems.Contains(itemInfo.ItemName))
@@ -101,13 +101,25 @@ namespace YARG.Assets.Script.YargAP
         internal static void TryCheckSongLocation(GameManager gameManager)
         {
             if (!IsConnected) return;
+
+            if (APGoalSong is not null && APGoalSong.MatchesSongEntry(gameManager.Song))
+            {
+                var canComplete = APGoalSong.CanCompleteLocation();
+                var metReqs = APGoalSong.MetPlayRequirements(gameManager);
+                if (canComplete && metReqs)
+                    Session.SetGoalAchieved();
+                return;
+            }
+
             var matchingAPLocation = APSongLocations.FirstOrDefault(x => x.MatchesSongEntry(gameManager.Song));
-
-            if (matchingAPLocation != null && matchingAPLocation.CanCompleteLocation() && matchingAPLocation.MetPlayRequirements(gameManager))
-                Session.Locations.CompleteLocationChecksAsync(matchingAPLocation.LocationID1, matchingAPLocation.LocationID2, matchingAPLocation.LocationID3);
-
-            if (APGoalSong is not null && APGoalSong.MatchesSongEntry(gameManager.Song) && APGoalSong.CanCompleteLocation() && APGoalSong.MetPlayRequirements(gameManager))
-                Session.SetGoalAchieved();
+            if (matchingAPLocation is not null)
+            {
+                var canComplete = matchingAPLocation.CanCompleteLocation();
+                var metReqs = matchingAPLocation.MetPlayRequirements(gameManager);
+                if (canComplete && metReqs)
+                    Session.Locations.CompleteLocationChecksAsync(matchingAPLocation.LocationID1, matchingAPLocation.LocationID2, matchingAPLocation.LocationID3);
+                return;
+            }
 
         }
 

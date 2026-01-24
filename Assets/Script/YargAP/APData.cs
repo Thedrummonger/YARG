@@ -30,8 +30,11 @@ namespace YARG.Assets.Script.YargAP
             {
                 if (Instrument is null) return true;
                 var usedInstruments = new HashSet<string>();
+                var harmonyCount = gameManager.Players.Count(x => x.Player.Profile.CurrentInstrument == Core.Instrument.Harmony);
+                if (harmonyCount > 1) usedInstruments.Add("harmony2");
+                if (harmonyCount > 2) usedInstruments.Add("harmony3");
                 foreach (var player in gameManager.Players)
-                    if (InstrumentToPythonInstrumentList.TryGetValue(player.Player.Profile.CurrentInstrument, out var inst))
+                    if (YargInstrumentToAPKey.TryGetValue(player.Player.Profile.CurrentInstrument, out var inst))
                         usedInstruments.Add(inst);
                 return usedInstruments.Contains(Instrument);
             }
@@ -40,7 +43,7 @@ namespace YARG.Assets.Script.YargAP
             {
                 if (!APEvents.IsConnected) return false;
                 if (Instrument is null) return true;
-                if (!pythonInstToItemName.TryGetValue(Instrument, out var inst)){ return false;}
+                if (!APInstrumentKeyToName.TryGetValue(Instrument, out var inst)){ return false;}
                 return APEvents.AllReceivedInstruments.Contains(inst);
             }
 
@@ -237,36 +240,42 @@ namespace YARG.Assets.Script.YargAP
                 return result;
             }
         }
-        public static readonly Dictionary<Instrument, string> InstrumentToPythonInstrumentList = new Dictionary<Instrument, string>
+        public static readonly Dictionary<Instrument, string> YargInstrumentToAPKey = new Dictionary<Instrument, string>
         {
             { Instrument.FiveFretGuitar, "guitar5F" },
             { Instrument.FiveFretBass, "bass5F" },
             { Instrument.FiveFretRhythm, "rhythm5F" },
-            { Instrument.FiveFretCoopGuitar, "guitar5F" },
+            { Instrument.FiveFretCoopGuitar, "coop5F" },
 
-            { Instrument.SixFretGuitar, "guitar5F" },
-            { Instrument.SixFretBass, "bass5F" },
-            { Instrument.SixFretRhythm, "rhythm5F" },
-            { Instrument.SixFretCoopGuitar, "guitar5F" },
+            { Instrument.SixFretGuitar, "guitar6F" },
+            { Instrument.SixFretBass, "bass6F" },
+            { Instrument.SixFretRhythm, "rhythm6F" },
+            { Instrument.SixFretCoopGuitar, "coop6F" },
 
             { Instrument.FourLaneDrums, "drums" },
             { Instrument.ProDrums, "drums" },
             { Instrument.FiveLaneDrums, "drums" },
-            { Instrument.EliteDrums, "drums" },
+            { Instrument.EliteDrums, "drumsElite" },
 
             { Instrument.Keys, "keys5F" },
             { Instrument.ProKeys, "keysPro" },
 
             { Instrument.Vocals, "vocals" },
-            { Instrument.Harmony, "harmony2" }
+            //{ Instrument.Harmony, "harmony2" }
         };
 
-        public static Dictionary<string, string> pythonInstToItemName = new Dictionary<string, string>
+        public static Dictionary<string, string> APInstrumentKeyToName = new Dictionary<string, string>
         {
             { "guitar5F", "Guitar" },
             { "bass5F", "Bass" },
             { "rhythm5F", "Rhythm" },
+            { "coop5F", "Co-op"},
+            { "guitar6F", "6 Fret Guitar" },
+            { "bass6F", "6 Fret Bass" },
+            { "rhythm6F", "6 Fret Rhythm" },
+            { "coop6F", "6 Fret Co-op"},
             { "drums", "Drums" },
+            { "drumsElite", "Elite Drums" },
             { "keys5F", "Keys" },
             { "keysPro", "Pro Keys" },
             { "vocals", "Vocals" },
