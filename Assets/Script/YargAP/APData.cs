@@ -103,11 +103,12 @@ namespace YARG.Assets.Script.YargAP
             public long LocationID1;
             public long LocationID2;
             public long LocationID3;
-            public bool HasCheckedBothLocations() => APEvents.IsConnected &&
+            public bool AllLocationsChecked() => APEvents.IsConnected &&
                 APEvents.Session.Locations.AllLocationsChecked.Contains(LocationID1) &&
-                APEvents.Session.Locations.AllLocationsChecked.Contains(LocationID2);
-            public override bool VisibleInSongList() => HasReceivedSong() && !HasCheckedBothLocations();
-            public override bool CanCompleteLocation() => HasReceivedSong() && HasReceiveInstrumentItem() && !HasCheckedBothLocations();
+                APEvents.Session.Locations.AllLocationsChecked.Contains(LocationID2) &&
+                APEvents.Session.Locations.AllLocationsChecked.Contains(LocationID3);
+            public override bool VisibleInSongList() => APEvents.IsConnected && HasReceivedSong() && !AllLocationsChecked();
+            public override bool CanCompleteLocation() => APEvents.IsConnected && HasReceivedSong() && HasReceiveInstrumentItem() && !AllLocationsChecked();
         }
 
         public class ConnectionCache
