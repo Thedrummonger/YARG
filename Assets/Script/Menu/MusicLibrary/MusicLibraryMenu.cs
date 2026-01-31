@@ -494,19 +494,37 @@ namespace YARG.Menu.MusicLibrary
                     if (AvailableSongs.Any())
                     {
                         var availableAPSongs = new List<SongEntry>();
-                        foreach (var APSong in AvailableSongs)
+                        var availableAPSongsWithHeader = new Dictionary<string, List<SongEntry>>();
+                        foreach (var apSong in AvailableSongs)
                         {
-                            var song = APSong.GetYargSongEntry();
+                            var song = apSong.GetYargSongEntry();
                             if (song != null)
-                                availableAPSongs.Add(song);
+                                if (String.IsNullOrWhiteSpace(apSong.Instrument))
+                                    availableAPSongs.Add(song);
+                                else
+                                {
+                                    if (!availableAPSongsWithHeader.ContainsKey(apSong.Instrument))
+                                        availableAPSongsWithHeader[apSong.Instrument] = new List<SongEntry>();
+                                    availableAPSongsWithHeader[apSong.Instrument].Add(song);
+                                }
                             else
-                                ToastManager.ToastError($"Failed to find song with song hash {APSong}!\nEnsure you are using the YARG official setlist!");
+                                ToastManager.ToastError($"Failed to find song with song hash {apSong}!\nEnsure you are using the YARG official setlist!");
                         }
                         if (availableAPSongs.Count > 0)
                         {
                             list.Add(new CategoryViewType("AP Songs", availableAPSongs.Count, availableAPSongs.ToArray(), RefreshAndReselect));
                             foreach (var song in availableAPSongs)
                                 list.Add(new SongViewType(this, song));
+                        }
+
+                        if (availableAPSongsWithHeader.Count > 0)
+                        {
+                            foreach (var header in availableAPSongsWithHeader)
+                            {
+                                list.Add(new CategoryViewType($"AP Songs: {header.Key}", availableAPSongs.Count, availableAPSongs.ToArray(), RefreshAndReselect));
+                                foreach (var song in header.Value)
+                                    list.Add(new SongViewType(this, song));
+                            }
                         }
                     }
 
