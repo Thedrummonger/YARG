@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using UnityEngine;
+using YARG.Core;
 using YARG.Core.Extensions;
 using YARG.Core.Song;
 using YARG.Gameplay;
@@ -37,6 +38,8 @@ namespace YARG.Assets.Script.YargAP
         private static readonly System.Random   SeedRng             = new();
         public static bool                      IsConnected => Session?.Socket != null && APEvents.Session.Socket.Connected;
 
+        public static HashSet<string> AllReceivedInstruments = new HashSet<string>();
+
         const long minScale = 20000;
         const long maxScale = 1000000;
 
@@ -45,6 +48,7 @@ namespace YARG.Assets.Script.YargAP
         public static void Items_ItemReceived(Archipelago.MultiClient.Net.Helpers.ReceivedItemsHelper helper)
         {
             APGoalSong?.UpdateGoalItems();
+            UpdateRecievedInstruments();
             while (helper.Any())
             {
                 var item = helper.DequeueItem();
@@ -52,6 +56,17 @@ namespace YARG.Assets.Script.YargAP
                 if (item.ItemId == (long) APData.APFiller.StarPower && CurrentSong != null)
                     foreach (var i in CurrentSong.Players)
                         ApplyStarPowerItem(i, CurrentSong);
+            }
+        }
+
+        public static void UpdateRecievedInstruments()
+        {
+            if (!APEvents.IsConnected) return;
+            HashSet<string> AllInstItems = APData.APInstrumentKeyToName.Values.ToHashSet();
+            foreach (var itemInfo in APEvents.Session.Items.AllItemsReceived)
+            {
+                if (AllInstItems.Contains(itemInfo.ItemName))
+                    AllReceivedInstruments.Add(itemInfo.ItemName);
             }
         }
 
@@ -86,13 +101,25 @@ namespace YARG.Assets.Script.YargAP
         internal static void TryCheckSongLocation(GameManager gameManager)
         {
             if (!IsConnected) return;
+
+            if (APGoalSong is not null && APGoalSong.MatchesSongEntry(gameManager.Song))
+            {
+                var canComplete = APGoalSong.CanCompleteLocation();
+                var metReqs = APGoalSong.MetPlayRequirements(gameManager);
+                if (canComplete && metReqs)
+                    Session.SetGoalAchieved();
+                return;
+            }
+
             var matchingAPLocation = APSongLocations.FirstOrDefault(x => x.MatchesSongEntry(gameManager.Song));
-
-            if (matchingAPLocation != null && matchingAPLocation.CanCompleteLocation() && matchingAPLocation.MetPlayRequirements(gameManager))
-                Session.Locations.CompleteLocationChecksAsync(matchingAPLocation.LocationID1, matchingAPLocation.LocationID2);
-
-            if (APGoalSong is not null && APGoalSong.MatchesSongEntry(gameManager.Song) && APGoalSong.CanCompleteLocation() && APGoalSong.MetPlayRequirements(gameManager))
-                Session.SetGoalAchieved();
+            if (matchingAPLocation is not null)
+            {
+                var canComplete = matchingAPLocation.CanCompleteLocation();
+                var metReqs = matchingAPLocation.MetPlayRequirements(gameManager);
+                if (canComplete && metReqs)
+                    Session.Locations.CompleteLocationChecksAsync(matchingAPLocation.LocationID1, matchingAPLocation.LocationID2, matchingAPLocation.LocationID3);
+                return;
+            }
 
         }
 

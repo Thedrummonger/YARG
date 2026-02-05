@@ -25,13 +25,14 @@ namespace YARG.Assets.Script.YargAP
         [SerializeField] private string address = "archipelago.gg:38281";
         [SerializeField] private string slotName = "";
         [SerializeField] private string password = "";
+        [SerializeField] private string connectionSuffix = "";
 
         private int DeathLinkOverride = APData.DeathLinkValues.Length;
         private int EnergyLinkOverride = APData.EnergyLinkValues.Length;
 
         private bool     showDeathlinkDropdown = false;
 
-        private Rect _windowRect = new Rect(20, 20, 430, 260);
+        private Rect _windowRect = new Rect(20, 20, 430, 310);
 
         private void Awake()
         {
@@ -50,6 +51,7 @@ namespace YARG.Assets.Script.YargAP
                 address = $"{Cache.IP}:{Cache.Port}";
                 slotName = Cache.SlotName;
                 password = Cache.Password;
+                connectionSuffix = Cache.ConnectionSuffix;
             }
         }
 
@@ -75,6 +77,10 @@ namespace YARG.Assets.Script.YargAP
             GUILayout.Label("Password");
             using (new GUIEnabledScope(!APEvents.IsConnected))
                 password = GUILayout.PasswordField(password, '*');
+
+            GUILayout.Label("Game ID");
+            using (new GUIEnabledScope(!APEvents.IsConnected))
+                connectionSuffix = GUILayout.TextField(connectionSuffix);
 
             GUILayout.Space(10);
             string buttonText = APEvents.IsConnected ? "Disconnect" : "Connect";
@@ -149,7 +155,7 @@ namespace YARG.Assets.Script.YargAP
             GUI.DragWindow(new Rect(0, 0, 10000, 20));
         }
 
-        private void DoConnect() => APConnectionHelper.DoConnect(address, slotName, password);
+        private void DoConnect() => APConnectionHelper.DoConnect(address, slotName, password, connectionSuffix);
 
         private void DoDisconnect() => APConnectionHelper.DoDisconnect();
 

@@ -19,11 +19,12 @@ namespace YARG.Assets.Script.YargAP
 {
     internal class APConnectionHelper
     {
-        public static void DoConnect(string ServerAddress, string slotName, string Password)
+        public static void DoConnect(string ServerAddress, string slotName, string Password, string GameID)
         {
+            var GameCode = string.IsNullOrEmpty(GameID) ? "YARG" : $"YARG{GameID.Trim()}";
             if (APEvents.IsConnected) return;
             APEvents.Session = ArchipelagoSessionFactory.CreateSession(ServerAddress);
-            var Result = APEvents.Session.TryConnectAndLogin("YARG", slotName, Archipelago.MultiClient.Net.Enums.ItemsHandlingFlags.AllItems, password: Password);
+            var Result = APEvents.Session.TryConnectAndLogin(GameCode, slotName, Archipelago.MultiClient.Net.Enums.ItemsHandlingFlags.AllItems, password: Password);
             if (Result is LoginFailure failure)
             {
                 ToastManager.ToastError("Failed to connect to Archipelago server: " + string.Join(Environment.NewLine, failure.Errors));
@@ -32,39 +33,15 @@ namespace YARG.Assets.Script.YargAP
             }
 
             var SlotData = APEvents.Session.DataStorage.GetSlotData();
+            string ConnectionError = "Failed to parse Slot Data";
+            APData.YargSlotData ParsedSlotData = null;
+            try { ParsedSlotData = APData.YargSlotData.Parse(SlotData); }
+            catch (KeyNotFoundException ex) { ConnectionError = ($"\nMissing required field: {ex.Message}"); }
+            catch (NullReferenceException ex) { ConnectionError = ($"\nNull value encountered: {ex.Message}"); }
+            catch (InvalidCastException ex) { ConnectionError = ($"\nInvalid data type: {ex.Message}"); }
+            catch (Exception ex) { ConnectionError = ($": {ex.Message}"); }
 
-            object SlotDataGoalSong;
-            object SlotDataGoalSongSource;
-            object SlotDataGemsRequired;
-            object SlotDataSongList;
-            object SlotDataGoalSongVisibility;
-            object SlotDataDeathLink;
-            object SlotDataEnergyLink;
-
-            string ConnectionError = null;
-
-            if (!SlotData.TryGetValue("Goal Song", out SlotDataGoalSong) || SlotDataGoalSong is not string)
-                ConnectionError = "Goal Song could not be parsed from slot data";
-
-            if (!SlotData.TryGetValue("Goal Song Source", out SlotDataGoalSongSource) || SlotDataGoalSongSource is not string)
-                ConnectionError = "Goal Song source could not be parsed from slot data";
-
-            if (!SlotData.TryGetValue("Gems Required", out SlotDataGemsRequired) || SlotDataGemsRequired is not long)
-                ConnectionError = "Required Gems could not be parsed from slot data";
-
-            if (!SlotData.TryGetValue("songlist", out SlotDataSongList) || SlotDataSongList is not JObject)
-                ConnectionError = "Song Data could not be parsed from slot data";
-
-            if (!SlotData.TryGetValue("Goal Song Visibility", out SlotDataGoalSongVisibility) || SlotDataGoalSongVisibility is not long)
-                ConnectionError = "Goal Song Visibility could not be parsed from slot data";
-
-            if (!SlotData.TryGetValue("Death Link", out SlotDataDeathLink) || SlotDataDeathLink is not long)
-                ConnectionError = "Death Link could not be parsed from slot data";
-
-            if (!SlotData.TryGetValue("Energy Link", out SlotDataEnergyLink) || SlotDataEnergyLink is not long)
-                ConnectionError = "Energy Link could not be parsed from slot data";
-
-            if (ConnectionError is not null)
+            if (ParsedSlotData == null)
             {
                 DoDisconnect(true, $"Connection Failed:\n{ConnectionError}");
                 return;
@@ -73,19 +50,18 @@ namespace YARG.Assets.Script.YargAP
             List<APData.APSongLocation> APSongLocations = new List<APData.APSongLocation>();
             APData.APGoalSong APGoalSong = null;
             var BadSongs = new List<APData.APSongData>();
-            foreach (var song in ((JObject)SlotDataSongList!).ToObject<Dictionary<string, object[]>>())
+            foreach (var song in ParsedSlotData.Songlist)
             {
-                if (song.Key == (string) SlotDataGoalSong && (string) song.Value[3] == (string) SlotDataGoalSongSource)
+
+                if (song.Key == ParsedSlotData.GoalSong && (string) song.Value.Source == ParsedSlotData.GoalSongSource)
                 {
-                    APGoalSong = new APData.APGoalSong(song.Key, (string) song.Value[3], (long) song.Value[2], (int) (long) SlotDataGemsRequired!);
-                    APGoalSong.UpdateGoalItems();
+                    APGoalSong = new APData.APGoalSong(song.Key, ParsedSlotData.GemsRequired, song.Value);
                     if (SongContainer.Songs.All(x => !APGoalSong.MatchesSongEntry(x)))
                         BadSongs.Add(APGoalSong);
                     continue;
                 }
 
-                var songLocation = new APData.APSongLocation(song.Key, (string) song.Value[3], (long) song.Value[0],
-                    (long) song.Value[1], (long) song.Value[2]);
+                var songLocation = new APData.APSongLocation(song.Key, song.Value);
                 APSongLocations.Add(songLocation);
 
                 if (SongContainer.Songs.All(x => !songLocation.MatchesSongEntry(x)))
@@ -94,7 +70,7 @@ namespace YARG.Assets.Script.YargAP
 
             if (APGoalSong is null)
             {
-                DoDisconnect(true, $"Connection Failed:\nFailed to find Goal song [{SlotDataGoalSongSource}] {SlotDataGoalSong} in APSongList");
+                DoDisconnect(true, $"Connection Failed:\nFailed to find Goal song [{ParsedSlotData.GoalSongSource}] {ParsedSlotData.GoalSong} in APSongList");
                 return;
             }
 
@@ -108,11 +84,11 @@ namespace YARG.Assets.Script.YargAP
             }
             APEvents.APSongLocations = APSongLocations.ToArray();
             APEvents.APGoalSong = APGoalSong;
-            APEvents.GoalDisplaySetting = (APData.GoalDisplaySetting) (long) SlotDataGoalSongVisibility!;
-            APEvents.DeathLinkType = (APData.DeathLinkType) (long) SlotDataDeathLink;
-            APEvents.DeathLinkYAML = (APData.DeathLinkType) (long) SlotDataDeathLink;
-            APEvents.EnergyLinkType = (APData.EnergyLinkType) (long) SlotDataEnergyLink;
-            APEvents.EnergyLinkYAML = (APData.EnergyLinkType) (long) SlotDataEnergyLink;
+            APEvents.GoalDisplaySetting = (APData.GoalDisplaySetting) ParsedSlotData.GoalSongVisibility;
+            APEvents.DeathLinkType = (APData.DeathLinkType) ParsedSlotData.DeathLink;
+            APEvents.DeathLinkYAML = (APData.DeathLinkType) ParsedSlotData.DeathLink;
+            APEvents.EnergyLinkType = (APData.EnergyLinkType) ParsedSlotData.EnergyLink;
+            APEvents.EnergyLinkYAML = (APData.EnergyLinkType) ParsedSlotData.EnergyLink;
             APEvents.DeathLinkService = APEvents.Session.CreateDeathLinkService();
 
             APEvents.Session.MessageLog.OnMessageReceived += APEvents.MessageLog_OnMessageReceived;
@@ -120,6 +96,8 @@ namespace YARG.Assets.Script.YargAP
             APEvents.DeathLinkService.OnDeathLinkReceived += APEvents.ProcessDeathLink;
 
             APEvents.UpdateDeathLinkTag();
+            APEvents.UpdateRecievedInstruments();
+            APEvents.APGoalSong.UpdateGoalItems();
 
             SaveConnectionCache(APEvents.Session, Password);
 

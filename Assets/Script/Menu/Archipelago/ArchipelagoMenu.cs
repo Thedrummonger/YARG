@@ -45,7 +45,7 @@ namespace YARG.Menu.ArchipelagoMenu
 
         }
 
-        public void ConnectButton() => APConnectionHelper.DoConnect($"{ServerAddress.text}:{Port.text}", Slotname.text, Password.text);
+        public void ConnectButton() => APConnectionHelper.DoConnect($"{ServerAddress.text}:{Port.text}", Slotname.text, Password.text, "");
         public void DisconnectButton() => APConnectionHelper.DoDisconnect();
 
         public void SetToggles()
