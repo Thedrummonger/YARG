@@ -19,11 +19,12 @@ namespace YARG.Assets.Script.YargAP
 {
     internal class APConnectionHelper
     {
-        public static void DoConnect(string ServerAddress, string slotName, string Password)
+        public static void DoConnect(string ServerAddress, string slotName, string Password, string GameID)
         {
+            var GameCode = string.IsNullOrEmpty(GameID) ? "YARG" : $"YARG{GameID.Trim()}";
             if (APEvents.IsConnected) return;
             APEvents.Session = ArchipelagoSessionFactory.CreateSession(ServerAddress);
-            var Result = APEvents.Session.TryConnectAndLogin("YARG", slotName, Archipelago.MultiClient.Net.Enums.ItemsHandlingFlags.AllItems, password: Password);
+            var Result = APEvents.Session.TryConnectAndLogin(GameCode, slotName, Archipelago.MultiClient.Net.Enums.ItemsHandlingFlags.AllItems, password: Password);
             if (Result is LoginFailure failure)
             {
                 ToastManager.ToastError("Failed to connect to Archipelago server: " + string.Join(Environment.NewLine, failure.Errors));

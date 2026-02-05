@@ -117,6 +117,7 @@ namespace YARG.Assets.Script.YargAP
             public int    Port;
             public string SlotName;
             public string Password;
+            public string ConnectionSuffix;
         }
 
         public static List<DeathLinkMessage> DeathLinkMessages = new()
