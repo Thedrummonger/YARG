@@ -488,14 +488,14 @@ namespace YARG.Menu.MusicLibrary
                     if (ShouldDisplayGoalSong)
                     {
                         if (String.IsNullOrWhiteSpace(APEvents.APGoalSong.Instrument))
-                            list.Add(new CategoryViewType("AP Goal Song", 1, new SongEntry[] { goalSong }, RefreshAndReselect));
+                            list.Add(new CategoryViewType("<color=#C97682>A</color><color=#75C275>P</color> <color=#CA94C2>G</color><color=#D9A07D>o</color><color=#767EBD>a</color><color=#EEE391>l</color> <color=#C97682>S</color><color=#75C275>o</color><color=#CA94C2>n</color><color=#D9A07D>g</color>", 1, new SongEntry[] { goalSong }, RefreshAndReselect));
                         else
                         {
                             string instname = APData.APInstrumentKeyToName[APEvents.APGoalSong.Instrument];
                             string instrumentDisplay = APEvents.APGoalSong.HasReceiveInstrumentItem()
                                 ? $"<color=#00FF88>{instname}</color>"
                                 : $"<color=#FF4040>{instname}</color>";
-                            list.Add(new CategoryViewType($"AP Goal Song: {instrumentDisplay}", 1, new SongEntry[] { goalSong }, RefreshAndReselect));
+                            list.Add(new CategoryViewType($"<color=#C97682>A</color><color=#75C275>P</color> <color=#CA94C2>G</color><color=#D9A07D>o</color><color=#767EBD>a</color><color=#EEE391>l</color> <color=#C97682>S</color><color=#75C275>o</color><color=#CA94C2>n</color><color=#D9A07D>g</color>: {instrumentDisplay}", 1, new SongEntry[] { goalSong }, RefreshAndReselect));
                         }
                         list.Add(new SongViewType(this, goalSong));
                     }
@@ -523,7 +523,7 @@ namespace YARG.Menu.MusicLibrary
                         }
                         if (availableAPSongs.Count > 0)
                         {
-                            list.Add(new CategoryViewType("AP Songs", availableAPSongs.Count, availableAPSongs.ToArray(), RefreshAndReselect));
+                            list.Add(new CategoryViewType("<color=#C97682>A</color><color=#75C275>P</color> <color=#CA94C2>S</color><color=#D9A07D>o</color><color=#767EBD>n</color><color=#EEE391>g</color><color=#C97682>s</color>", availableAPSongs.Count, availableAPSongs.ToArray(), RefreshAndReselect));
                             foreach (var song in availableAPSongs)
                                 list.Add(new SongViewType(this, song));
                         }
@@ -536,7 +536,7 @@ namespace YARG.Menu.MusicLibrary
                                 string instrumentDisplay = headerAquireStatus[header.Key]
                                     ? $"<color=#00FF88>{instname}</color>"
                                     : $"<color=#FF4040>{instname}</color>";
-                                list.Add(new CategoryViewType($"AP Songs: {instrumentDisplay}", header.Value.Count, header.Value.ToArray(), RefreshAndReselect));
+                                list.Add(new CategoryViewType($"<color=#C97682>A</color><color=#75C275>P</color> <color=#CA94C2>S</color><color=#D9A07D>o</color><color=#767EBD>n</color><color=#EEE391>g</color><color=#C97682>s</color>: {instrumentDisplay}", header.Value.Count, header.Value.ToArray(), RefreshAndReselect));
                                 foreach (var song in header.Value)
                                     list.Add(new SongViewType(this, song));
                             }
