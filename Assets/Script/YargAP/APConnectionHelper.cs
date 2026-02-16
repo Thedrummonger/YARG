@@ -50,18 +50,18 @@ namespace YARG.Assets.Script.YargAP
             List<APData.APSongLocation> APSongLocations = new List<APData.APSongLocation>();
             APData.APGoalSong APGoalSong = null;
             var BadSongs = new List<APData.APSongData>();
-            foreach (var song in ParsedSlotData.Songlist)
+            foreach (var song in ParsedSlotData.Songlist.Values)
             {
-
-                if (song.Key == ParsedSlotData.GoalSong && (string) song.Value.Source == ParsedSlotData.GoalSongSource)
+                Debug.Log($"Scanning [{song.Source}] {song.Name} by {song.Artist}");
+                if (song.Name == ParsedSlotData.GoalSong && (string) song.Source == ParsedSlotData.GoalSongSource && song.Artist == ParsedSlotData.GoalSongArtist)
                 {
-                    APGoalSong = new APData.APGoalSong(song.Key, ParsedSlotData.GemsRequired, song.Value);
+                    APGoalSong = new APData.APGoalSong(ParsedSlotData.GemsRequired, song);
                     if (SongContainer.Songs.All(x => !APGoalSong.MatchesSongEntry(x)))
                         BadSongs.Add(APGoalSong);
                     continue;
                 }
 
-                var songLocation = new APData.APSongLocation(song.Key, song.Value);
+                var songLocation = new APData.APSongLocation(song);
                 APSongLocations.Add(songLocation);
 
                 if (SongContainer.Songs.All(x => !songLocation.MatchesSongEntry(x)))
@@ -70,7 +70,7 @@ namespace YARG.Assets.Script.YargAP
 
             if (APGoalSong is null)
             {
-                DoDisconnect(true, $"Connection Failed:\nFailed to find Goal song [{ParsedSlotData.GoalSongSource}] {ParsedSlotData.GoalSong} in APSongList");
+                DoDisconnect(true, $"Connection Failed:\nFailed to find Goal song [{ParsedSlotData.GoalSongSource}] {ParsedSlotData.GoalSong} by {ParsedSlotData.GoalSongArtist} in APSongList");
                 return;
             }
 
