@@ -307,7 +307,7 @@ namespace YARG.Gameplay
                     return;
                 }
             }
-            if (Keyboard.current.ctrlKey.isPressed && Keyboard.current.qKey.wasPressedThisFrame)
+            if (Keyboard.current.ctrlKey.isPressed && Keyboard.current.pauseKey.wasPressedThisFrame)
             {
                 if (EndSong(true))
                 {

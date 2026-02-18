@@ -20,6 +20,7 @@ namespace YARG.Assets.Script.YargAP
         {
             public string SongName;
             public string SongSource;
+            public string Artist;
             public long   ItemID;
             public string Instrument;
             public SongEntry GetYargSongEntry() => SongContainer.Songs.FirstOrDefault(x => x.Name == SongName && x.Source.Original == SongSource);
@@ -47,7 +48,7 @@ namespace YARG.Assets.Script.YargAP
                 return APEvents.AllReceivedInstruments.Contains(inst);
             }
 
-            public bool MatchesSongEntry(SongEntry entry) => SongName == entry.Name && SongSource == entry.Source.Original;
+            public bool MatchesSongEntry(SongEntry entry) => SongName == entry.Name && SongSource == entry.Source.Original && Artist == entry.Artist;
 
             public abstract bool CanCompleteLocation();
 
@@ -63,10 +64,11 @@ namespace YARG.Assets.Script.YargAP
 
         public class APGoalSong : APSongData
         {
-            public APGoalSong(string name, int GoalItems, SongMetadata meta)
+            public APGoalSong(int GoalItems, SongMetadata meta)
             {
-                SongName = name;
+                SongName = meta.Name;
                 SongSource = meta.Source;
+                Artist = meta.Artist;
                 ItemID = meta.ItemId;
                 GoalItemNeeded = GoalItems;
                 Instrument = meta.Instrument;
@@ -90,10 +92,11 @@ namespace YARG.Assets.Script.YargAP
         }
         public class APSongLocation : APSongData
         {
-            public APSongLocation(string name, SongMetadata meta)
+            public APSongLocation(SongMetadata meta)
             {
-                SongName = name;
+                SongName = meta.Name;
                 SongSource = meta.Source;
+                Artist = meta.Artist;
                 ItemID = meta.ItemId;
                 LocationID1 = meta.Loc1Id;
                 LocationID2 = meta.Loc2Id;
@@ -183,26 +186,30 @@ namespace YARG.Assets.Script.YargAP
         }
         public class SongMetadata
         {
-            public long Loc1Id { get; set; }
-            public long Loc2Id { get; set; }
-            public long Loc3Id { get; set; }
-            public long ItemId { get; set; }
-            public string Source { get; set; }
+            public string Name     { get; set; }
+            public long   Loc1Id     { get; set; }
+            public long   Loc2Id     { get; set; }
+            public long   Loc3Id     { get; set; }
+            public long   ItemId     { get; set; }
+            public string Source     { get; set; }
+            public string Artist     { get; set; }
             public string Instrument { get; set; }
 
             public static SongMetadata FromArray(JArray array)
             {
                 var result = new SongMetadata
                 {
-                    Loc1Id = array[0].ToObject<long>(),
-                    Loc2Id = array[1].ToObject<long>(),
-                    Loc3Id = array[2].ToObject<long>(),
-                    ItemId = array[3].ToObject<long>(),
-                    Source = array[4].ToObject<string>()
+                    Name = array[0].ToObject<string>(),
+                    Loc1Id = array[1].ToObject<long>(),
+                    Loc2Id = array[2].ToObject<long>(),
+                    Loc3Id = array[3].ToObject<long>(),
+                    ItemId = array[4].ToObject<long>(),
+                    Source = array[5].ToObject<string>(),
+                    Artist = array[6].ToObject<string>()
                 };
 
-                if (array.Count > 5)
-                    result.Instrument = array[5].ToObject<string>();
+                if (array.Count > 7)
+                    result.Instrument = array[7].ToObject<string>();
                 else
                     result.Instrument = null;
 
@@ -214,6 +221,7 @@ namespace YARG.Assets.Script.YargAP
         {
             public string                           GoalSong           { get; set; }
             public string                           GoalSongSource     { get; set; }
+            public string                           GoalSongArtist     { get; set; }
             public Dictionary<string, SongMetadata> Songlist           { get; set; }
             public int                              GemsRequired       { get; set; }
             public int                              GoalSongVisibility { get; set; }
@@ -227,6 +235,7 @@ namespace YARG.Assets.Script.YargAP
                 {
                     GoalSong = slotData["Goal Song"].ToString(),
                     GoalSongSource = slotData["Goal Song Source"].ToString(),
+                    GoalSongArtist = slotData["Goal Song Artist"].ToString(),
                     GemsRequired = Convert.ToInt32(slotData["Gems Required"]),
                     GoalSongVisibility = Convert.ToInt32(slotData["Goal Song Visibility"]),
                     DeathLink = Convert.ToInt32(slotData["Death Link"]),

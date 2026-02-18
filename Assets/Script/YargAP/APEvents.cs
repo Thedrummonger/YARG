@@ -72,11 +72,11 @@ namespace YARG.Assets.Script.YargAP
 
         public static void MessageLog_OnMessageReceived(Archipelago.MultiClient.Net.MessageLog.Messages.LogMessage message)
         {
-            if (message is Archipelago.MultiClient.Net.MessageLog.Messages.ChatLogMessage chatMessage && !PrintChatMessages)
+            if (message is Archipelago.MultiClient.Net.MessageLog.Messages.ChatLogMessage && !PrintChatMessages)
                 return;
             if (message is Archipelago.MultiClient.Net.MessageLog.Messages.ItemSendLogMessage itemMessage && !itemMessage.IsReceiverTheActivePlayer && !itemMessage.IsSenderTheActivePlayer && !PrintUnrelatedItems)
                 return;
-            ToastManager.ToastMessage(message.ToString());
+            ToastManager.ToastMessage(message.ToYargColoredString());
         }
 
         private static MethodInfo _gainStarPower;
