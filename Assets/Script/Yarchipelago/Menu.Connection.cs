@@ -167,6 +167,12 @@ namespace YARG.Assets.Script.Yarchipelago
         {
             var dialog = GetOrCreateApDialog();
             dialog.Show = !dialog.Show;
+
+            ApToastManager.APToastMessage("Message!");
+            ApToastManager.APToastError("Error!");
+            ApToastManager.APToastJunkItem("Junk!");
+            ApToastManager.APToastStandardItem("Standard!");
+            ApToastManager.APToastProgressionItem("Progression!");
         }
 
         public static ArchipelagoConnectionDialog GetOrCreateApDialog()

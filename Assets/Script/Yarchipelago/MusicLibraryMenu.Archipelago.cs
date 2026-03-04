@@ -82,7 +82,7 @@ namespace YARG.Menu.MusicLibrary
                             headerAquireStatus[apSong.Instrument] = apSong.HasReceiveInstrumentItem();
                         }
                     else
-                        ToastManager.APToastError($"Failed to find song with song hash {apSong}!\nEnsure you are using the YARG official setlist!");
+                        ApToastManager.APToastError($"Failed to find song with song hash {apSong}!\nEnsure you are using the YARG official setlist!");
                 }
                 if (availableAPSongs.Count > 0)
                 {

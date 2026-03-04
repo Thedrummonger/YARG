@@ -79,15 +79,15 @@ namespace YARG.Assets.Script.Yarchipelago
                 if (itemMessage.Item.Flags.HasFlag(ItemFlags.Advancement)) Flag = ItemFlags.Advancement;
             }
             if (Flag is null)
-                ToastManager.APToastMessage(message.ToYargColoredString());
+                ApToastManager.APToastMessage(message.ToYargColoredString());
             else if (Flag == ItemFlags.None)
-                ToastManager.APToastJunkItem(message.ToYargColoredString());
+                ApToastManager.APToastJunkItem(message.ToYargColoredString());
             else if (Flag == ItemFlags.NeverExclude)
-                ToastManager.APToastStandardItem(message.ToYargColoredString());
+                ApToastManager.APToastStandardItem(message.ToYargColoredString());
             else if (Flag == ItemFlags.Advancement)
-                ToastManager.APToastProgressionItem(message.ToYargColoredString());
+                ApToastManager.APToastProgressionItem(message.ToYargColoredString());
             else
-                ToastManager.APToastMessage(message.ToYargColoredString());
+                ApToastManager.APToastMessage(message.ToYargColoredString());
         }
 
         private static MethodInfo _gainStarPower;

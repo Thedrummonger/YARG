@@ -50,15 +50,6 @@ namespace YARG.Menu.Persistent
             Success,
             Warning,
             Error,
-
-            APGeneral,
-            APInformation,
-            APSuccess,
-            APWarning,
-            APError,
-            APItemJunk,
-            APItemUseful,
-            APItemProgression
         }
 
         private readonly struct ToastInfo
@@ -155,25 +146,10 @@ namespace YARG.Menu.Persistent
                 gameObject.AddComponent<GraphicRaycaster>();
         }
 
-        public static void APToastMessage(string text, Action onClick = null)
-            => AddToast(ToastType.APGeneral, text, onClick);
-        public static void APToastInformation(string text, Action onClick = null)
-            => AddToast(ToastType.APInformation, text, onClick);
-        public static void APToastSuccess(string text, Action onClick = null)
-            => AddToast(ToastType.APSuccess, text, onClick);
-        public static void APToastWarning(string text, Action onClick = null)
-            => AddToast(ToastType.APWarning, text, onClick);
-        public static void APToastError(string text, Action onClick = null)
-            => AddToast(ToastType.APError, text, onClick);
-        public static void APToastJunkItem(string text, Action onClick = null)
-            => AddToast(ToastType.APItemJunk, text, onClick);
-        public static void APToastStandardItem(string text, Action onClick = null)
-            => AddToast(ToastType.APItemUseful, text, onClick);
-        public static void APToastProgressionItem(string text, Action onClick = null)
-            => AddToast(ToastType.APItemProgression, text, onClick);
-
         private void ShowToast(ToastType type, string body, Action onClick)
         {
+            if (Assets.Script.Yarchipelago.ApToastManager.HandleAPToasts((int) type, body, onClick, this, _toastPrefab,
+                _generalColor, _informationColor, _successColor, _warningColor, _errorColor)) return;
             // Get properties for this message type
             var (text, color, icon) = type switch
             {
@@ -182,20 +158,13 @@ namespace YARG.Menu.Persistent
                 ToastType.Success => ("Success", _successColor, _iconSuccess),
                 ToastType.Warning => ("Warning", _warningColor, _iconWarning),
                 ToastType.Error => ("Error", _errorColor, _iconError),
-
-                ToastType.APGeneral => ("Archipelago", _generalColor, Assets.Script.Yarchipelago.ColorHelper.APWhiteIcon),
-                ToastType.APInformation => ("Archipelago", _informationColor, Assets.Script.Yarchipelago.ColorHelper.APWhiteIcon),
-                ToastType.APSuccess => ("Archipelago", _successColor, Assets.Script.Yarchipelago.ColorHelper.APWhiteIcon),
-                ToastType.APWarning => ("Archipelago", _warningColor, Assets.Script.Yarchipelago.ColorHelper.APWhiteIcon),
-                ToastType.APError => ("Archipelago", _errorColor, Assets.Script.Yarchipelago.ColorHelper.APWhiteIcon),
-                ToastType.APItemJunk => ("Archipelago", Color.cyan, Assets.Script.Yarchipelago.ColorHelper.APBlueIcon),
-                ToastType.APItemUseful => ("Archipelago", Color.slateBlue, Assets.Script.Yarchipelago.ColorHelper.APBlueIcon),
-                ToastType.APItemProgression => ("Archipelago", Color.plum, Assets.Script.Yarchipelago.ColorHelper.APColorIcon),
                 _ => throw new ArgumentException($"Invalid toast type {type}!")
             };
 
             var toast = Instantiate(_toastPrefab, transform);
             toast.Initialize(text, body, icon, color, onClick);
         }
+
+        public static void AddToast(int type, string text, Action onClick) => AddToast((ToastType) type, text, onClick);
     }
 }
