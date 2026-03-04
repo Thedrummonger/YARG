@@ -1,5 +1,6 @@
 ﻿using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
+using Archipelago.MultiClient.Net.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -66,11 +67,27 @@ namespace YARG.Assets.Script.Yarchipelago
 
         public static void MessageLog_OnMessageReceived(Archipelago.MultiClient.Net.MessageLog.Messages.LogMessage message)
         {
+            ItemFlags? Flag = null;
             if (message is Archipelago.MultiClient.Net.MessageLog.Messages.ChatLogMessage && !PrintChatMessages)
                 return;
-            if (message is Archipelago.MultiClient.Net.MessageLog.Messages.ItemSendLogMessage itemMessage && !itemMessage.IsReceiverTheActivePlayer && !itemMessage.IsSenderTheActivePlayer && !PrintUnrelatedItems)
-                return;
-            ToastManager.ToastMessage(message.ToYargColoredString());
+            if (message is Archipelago.MultiClient.Net.MessageLog.Messages.ItemSendLogMessage itemMessage)
+            {
+                if (!itemMessage.IsReceiverTheActivePlayer && !itemMessage.IsSenderTheActivePlayer && !PrintUnrelatedItems)
+                    return;
+                Flag = ItemFlags.None;
+                if (itemMessage.Item.Flags.HasFlag(ItemFlags.NeverExclude)) Flag = ItemFlags.NeverExclude;
+                if (itemMessage.Item.Flags.HasFlag(ItemFlags.Advancement)) Flag = ItemFlags.Advancement;
+            }
+            if (Flag is null)
+                ToastManager.APToastMessage(message.ToYargColoredString());
+            else if (Flag == ItemFlags.None)
+                ToastManager.APToastJunkItem(message.ToYargColoredString());
+            else if (Flag == ItemFlags.NeverExclude)
+                ToastManager.APToastStandardItem(message.ToYargColoredString());
+            else if (Flag == ItemFlags.Advancement)
+                ToastManager.APToastProgressionItem(message.ToYargColoredString());
+            else
+                ToastManager.APToastMessage(message.ToYargColoredString());
         }
 
         private static MethodInfo _gainStarPower;

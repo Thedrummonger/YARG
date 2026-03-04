@@ -25,7 +25,7 @@ namespace YARG.Assets.Script.Yarchipelago
             var Result = Events.Session.TryConnectAndLogin(GameCode, slotName, Archipelago.MultiClient.Net.Enums.ItemsHandlingFlags.AllItems, password: Password);
             if (Result is LoginFailure failure)
             {
-                ToastManager.ToastError("Failed to connect to Archipelago server: " + string.Join(Environment.NewLine, failure.Errors));
+                ToastManager.APToastError("Failed to connect to Archipelago server: " + string.Join(Environment.NewLine, failure.Errors));
                 Events.Session = null;
                 return;
             }
@@ -99,7 +99,7 @@ namespace YARG.Assets.Script.Yarchipelago
 
             SaveConnectionCache(Events.Session, Password);
 
-            ToastManager.ToastInformation("Connected to Archipelago server successfully!");
+            ToastManager.APToastInformation("Connected to Archipelago server successfully!");
         }
 
         public static void DoDisconnect(bool Early = false, string ErrorMessage = null)
@@ -120,9 +120,9 @@ namespace YARG.Assets.Script.Yarchipelago
             Events.APSongLocations = Array.Empty<Models.APSongLocation>();
 
             if (ErrorMessage is null)
-                ToastManager.ToastInformation("Disconnected from Archipelago!");
+                ToastManager.APToastInformation("Disconnected from Archipelago!");
             else
-                ToastManager.ToastError(ErrorMessage);
+                ToastManager.APToastError(ErrorMessage);
         }
 
         private static string ConnectionCachePath = Path.Combine(PathHelper.PersistentDataPath, "APConnectionCache.json");

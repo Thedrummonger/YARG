@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEditor.PackageManager;
 using UnityEngine;
+using YARG.Menu.Persistent;
 
 namespace YARG.Assets.Script.Yarchipelago
 {
