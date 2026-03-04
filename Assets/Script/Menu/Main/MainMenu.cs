@@ -1,4 +1,4 @@
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
 using YARG.Core.Input;
 using YARG.Menu.MusicLibrary;
@@ -18,6 +18,7 @@ namespace YARG.Menu.Main
 
         private void Start()
         {
+            Assets.Script.Yarchipelago.MenuInjector.Inject(this);
             _versionText.text = GlobalVariables.Instance.CurrentVersion;
 
             // Show the anti-piracy dialog if it hasn't been shown already

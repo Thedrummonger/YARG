@@ -3,16 +3,27 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using UnityEditor.PackageManager;
+using YARG.Assets.Script.Yarchipelago;
 using YARG.Core.Song;
+using YARG.Menu.ListMenu;
 using YARG.Menu.MusicLibrary;
 using YARG.Menu.Persistent;
 
-namespace YARG.Assets.Script.Yarchipelago
+namespace YARG.Menu.MusicLibrary
 {
-    public static class LibraryMenuHelper
+    public partial class MusicLibraryMenu : ListMenu<ViewType, SongView>
     {
-        public static void AddAPMenuItems(this MusicLibraryMenu library, List<ViewType> list, Action Refresh)
+        /// Archipelago integration:
+        /// Inserts Archipelago menu entries into the music library menu before the
+        /// standard Random Song / Playlists buttons.
+        ///<see cref="YARG.Menu.MusicLibrary.MusicLibraryMenu.CreateNormalViewList"/>.
+        /// <code>
+        /// if (!_searchField.IsSearching)
+        /// {
+        ///     AddAPMenuItems(list); // Archipelago
+        /// }
+        /// </code>
+        public void AddAPMenuItems(List<ViewType> list)
         {
             var AvailableSongs = Events.APSongLocations.Where(x => x.VisibleInSongList()).ToArray();
             var ShouldDisplayGoalSong = Events.APGoalSong?.VisibleInSongList() ?? false;
@@ -23,13 +34,13 @@ namespace YARG.Assets.Script.Yarchipelago
                     Events.GoalDisplaySetting == Models.GoalDisplaySetting.FULL ||
                     Events.GoalDisplaySetting == Models.GoalDisplaySetting.BOTH)
                     list.Add(new CategoryViewType($"Gems {Events.APGoalSong?.GoalItemCount}\\{Events.APGoalSong?.GoalItemNeeded}", 0,
-                        Array.Empty<SongEntry>(), Refresh));
+                        Array.Empty<SongEntry>(), () => RefreshAndReselect(false, true)));
 
                 if (Events.GoalDisplaySetting == Models.GoalDisplaySetting.GEMS ||
                     Events.GoalDisplaySetting == Models.GoalDisplaySetting.FULL ||
                     Events.GoalDisplaySetting == Models.GoalDisplaySetting.BOTH)
                     list.Add(new CategoryViewType($"Goal Song Item: {(Events.APGoalSong?.HasReceivedSong() ?? false ? "Found" : "Missing")}", 0,
-                        Array.Empty<SongEntry>(), Refresh));
+                        Array.Empty<SongEntry>(), () => RefreshAndReselect(false, true)));
             }
 
             var goalSong = Events.APGoalSong?.GetYargSongEntry();
@@ -39,7 +50,7 @@ namespace YARG.Assets.Script.Yarchipelago
             if (ShouldDisplayGoalSong)
             {
                 if (String.IsNullOrWhiteSpace(Events.APGoalSong.Instrument))
-                    list.Add(new CategoryViewType("AP Goal Song".ToRainbowString(), 1, new SongEntry[] { goalSong }, Refresh));
+                    list.Add(new CategoryViewType("AP Goal Song".ToRainbowString(), 1, new SongEntry[] { goalSong }, () => RefreshAndReselect(false, true)));
                 else
                 {
                     string instname = Models.APInstrumentKeyToName[Events.APGoalSong.Instrument];
@@ -47,9 +58,9 @@ namespace YARG.Assets.Script.Yarchipelago
                         ? $"<color=#00FF88>{instname}</color>"
                         : $"<color=#FF4040>{instname}</color>";
                     list.Add(new CategoryViewType($"{"AP Goal Song".ToRainbowString()}: {instrumentDisplay}", 1,
-                        new SongEntry[] { goalSong }, Refresh));
+                        new SongEntry[] { goalSong }, () => RefreshAndReselect(false, true)));
                 }
-                list.Add(new SongViewType(library, goalSong));
+                list.Add(new SongViewType(this, goalSong));
             }
 
             if (AvailableSongs.Any())
@@ -75,9 +86,9 @@ namespace YARG.Assets.Script.Yarchipelago
                 }
                 if (availableAPSongs.Count > 0)
                 {
-                    list.Add(new CategoryViewType("AP Songs".ToRainbowString(), availableAPSongs.Count, availableAPSongs.ToArray(), Refresh));
+                    list.Add(new CategoryViewType("AP Songs".ToRainbowString(), availableAPSongs.Count, availableAPSongs.ToArray(), () => RefreshAndReselect(false, true)));
                     foreach (var song in availableAPSongs)
-                        list.Add(new SongViewType(library, song));
+                        list.Add(new SongViewType(this, song));
                 }
 
                 if (availableAPSongsWithHeader.Count > 0)
@@ -89,9 +100,9 @@ namespace YARG.Assets.Script.Yarchipelago
                             ? $"<color=#00FF88>{instname}</color>"
                             : $"<color=#FF4040>{instname}</color>";
                         list.Add(new CategoryViewType($"{"AP Songs".ToRainbowString()}: {instrumentDisplay}", header.Value.Count,
-                            header.Value.ToArray(), Refresh));
+                            header.Value.ToArray(), () => RefreshAndReselect(false, true)));
                         foreach (var song in header.Value)
-                            list.Add(new SongViewType(library, song));
+                            list.Add(new SongViewType(this, song));
                     }
                 }
             }

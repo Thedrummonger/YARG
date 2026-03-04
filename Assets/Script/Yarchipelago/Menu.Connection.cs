@@ -161,5 +161,22 @@ namespace YARG.Assets.Script.Yarchipelago
             }
             public void Dispose() => GUI.enabled = _prev;
         }
+
+        public static void ToggleArchipelagoDialog()
+        {
+            var dialog = GetOrCreateApDialog();
+            dialog.Show = !dialog.Show;
+        }
+
+        public static ArchipelagoConnectionDialog GetOrCreateApDialog()
+        {
+            if (Instance != null)
+                return Instance;
+
+            var DialogObject = new GameObject("ArchipelagoConnectionDialog");
+            DontDestroyOnLoad(DialogObject);
+
+            return DialogObject.AddComponent<ArchipelagoConnectionDialog>();
+        }
     }
 }

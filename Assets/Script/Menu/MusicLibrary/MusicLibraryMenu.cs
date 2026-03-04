@@ -475,6 +475,8 @@ namespace YARG.Menu.MusicLibrary
 
             if (!_searchField.IsSearching)
             {
+                AddAPMenuItems(list);
+
                 list.Add(new ButtonViewType(
                     Localize.Key("Menu.MusicLibrary.RandomSong"),
                     "MusicLibraryIcons[Random]",

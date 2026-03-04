@@ -4,9 +4,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using UnityEngine;
 using YARG.Core.Extensions;
 using YARG.Gameplay;
+using YARG.Gameplay.HUD;
 using YARG.Gameplay.Player;
 using YARG.Menu.Persistent;
 using static YARG.Assets.Script.Yarchipelago.Models;
@@ -88,6 +90,61 @@ namespace YARG.Assets.Script.Yarchipelago
                 return;
             }
             _gainStarPower.Invoke(engine, new object[] { engine.TicksPerQuarterSpBar });
+        }
+
+        private static bool ShowGoalWarningForSong = false;
+
+        /// Archipelago integration:
+        /// Tracks the active song instance when gameplay begins.
+        /// Inserted at the end of <see cref="YARG.Gameplay.GameManager.Awake"/>.
+        public static void OnSongAwake(GameManager gameManager)
+        {
+            ShowGoalWarningForSong = false;
+            CurrentSong = gameManager;
+        }
+        /// Archipelago integration:
+        /// Clears the active song reference when the gameplay manager is destroyed.
+        /// Inserted at the beginning of <see cref="YARG.Gameplay.GameManager.OnDestroy"/>.
+        public static void OnSongDestroy(GameManager gameManager)
+        {
+            CurrentSong = null;
+        }
+
+        /// Archipelago integration:
+        /// Handles Archipelago location checks and EnergyLink scoring when a song ends.
+        /// Inserted in <see cref="YARG.Gameplay.GameManager.EndSong"/> immediately before
+        /// <c>CrowdEventHandler.Dispose()</c>.
+        public static void OnEndSong(GameManager gameManager)
+        {
+            TryCheckSongLocation(gameManager);
+            if (EnergyLinkType > EnergyLinkType.DISABLED)
+                SendEnergy(gameManager.BandScore);
+        }
+
+        /// Archipelago integration:
+        /// Allows calls on each game tick.
+        /// Inserted at the beginning of <see cref="YARG.Gameplay.GameManager.Update"/>.
+        public static void OnSongUpdate(GameManager gameManager, PauseMenuManager _pauseMenu)
+        {
+            WarnGoalSongUnavailable(gameManager, _pauseMenu);
+        }
+
+        private static void WarnGoalSongUnavailable(GameManager gameManager, PauseMenuManager _pauseMenu)
+        {
+            if (!ShowGoalWarningForSong && !gameManager.IsPractice && APGoalSong != null && APGoalSong.MatchesSongEntry(gameManager.Song) && !APGoalSong.CanCompleteLocation())
+            {
+                StringBuilder Error = new StringBuilder();
+
+                Error.AppendLine("You have selected your goal song but you do not have the items needed to complete it!");
+                if (!APGoalSong.HasEnoughYargGems())
+                    Error.AppendLine($"\nYou have {APGoalSong.GoalItemCount} Gems, but you need {APGoalSong.GoalItemNeeded}!");
+                if (!APGoalSong.HasReceivedSong())
+                    Error.AppendLine($"\nYou have not found your goal song item!");
+
+                gameManager.SetPaused(!_pauseMenu.IsOpen);
+                DialogManager.Instance.ShowMessage("Goal Song Not Unlocked", Error.ToString());
+            }
+            ShowGoalWarningForSong = true;
         }
 
         internal static void TryCheckSongLocation(GameManager gameManager)
