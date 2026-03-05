@@ -11,11 +11,6 @@ namespace YARG.Assets.Script.Yarchipelago
 {
     public partial class ArchipelagoConnectionDialog : MonoBehaviour
     {
-        public static ArchipelagoConnectionDialog Instance { get; private set; }
-
-        [Header("State")]
-        public bool Show = false;
-
         [Header("Defaults")]
         [SerializeField] private string address = "archipelago.gg:38281";
         [SerializeField] private string slotName = "";
@@ -24,43 +19,6 @@ namespace YARG.Assets.Script.Yarchipelago
 
         private int DeathLinkOverride = Models.DeathLinkValues.Length;
         private int EnergyLinkOverride = Models.EnergyLinkValues.Length;
-
-        private Rect _windowRect = new Rect(20, 20, 430, 310);
-
-        private void Awake()
-        {
-            if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-
-            var Cache = ConnectionHelper.LoadConnectionCache();
-            if (Cache is not null)
-            {
-                address = $"{Cache.IP}:{Cache.Port}";
-                slotName = Cache.SlotName;
-                password = Cache.Password;
-                connectionSuffix = Cache.ConnectionSuffix;
-            }
-        }
-
-        private void OnGUI()
-        {
-            if (!Show) return;
-
-            _windowRect = GUI.Window(0xA1C4, _windowRect, DrawWindow, "Archipelago Connection");
-        }
-        private void DrawWindow(int id)
-        {
-            if (ChatOpen)
-                DrawChatUI();
-            else
-                DrawConnectionUI();
-        }
 
         private void DrawConnectionUI()
         {
@@ -90,9 +48,9 @@ namespace YARG.Assets.Script.Yarchipelago
                 GUI.FocusControl(null);
                 GUIUtility.keyboardControl = 0;
                 if (Events.IsConnected)
-                    DoDisconnect();
+                    ConnectionHelper.DoDisconnect();
                 else
-                    DoConnect();
+                    ConnectionHelper.DoConnect(address, slotName, password, connectionSuffix);
             }
             GUILayout.Space(6);
             if (GUILayout.Button("Close", GUILayout.Height(28)))
@@ -159,38 +117,6 @@ namespace YARG.Assets.Script.Yarchipelago
             GUILayout.EndHorizontal();
 
             GUI.DragWindow(new Rect(0, 0, 10000, 20));
-        }
-
-        private void DoConnect() => ConnectionHelper.DoConnect(address, slotName, password, connectionSuffix);
-
-        private void DoDisconnect() => ConnectionHelper.DoDisconnect();
-
-        private readonly struct GUIEnabledScope : System.IDisposable
-        {
-            private readonly bool _prev;
-            public GUIEnabledScope(bool enabled)
-            {
-                _prev = GUI.enabled;
-                GUI.enabled = enabled;
-            }
-            public void Dispose() => GUI.enabled = _prev;
-        }
-
-        public static void ToggleArchipelagoDialog()
-        {
-            var dialog = GetOrCreateApDialog();
-            dialog.Show = !dialog.Show;
-        }
-
-        public static ArchipelagoConnectionDialog GetOrCreateApDialog()
-        {
-            if (Instance != null)
-                return Instance;
-
-            var DialogObject = new GameObject("ArchipelagoConnectionDialog");
-            DontDestroyOnLoad(DialogObject);
-
-            return DialogObject.AddComponent<ArchipelagoConnectionDialog>();
         }
     }
 }
