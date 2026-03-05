@@ -67,6 +67,7 @@ namespace YARG.Assets.Script.Yarchipelago
 
         public static void MessageLog_OnMessageReceived(Archipelago.MultiClient.Net.MessageLog.Messages.LogMessage message)
         {
+            ArchipelagoConnectionDialog.ChatHistory.Add(message);
             ItemFlags? Flag = null;
             if (message is Archipelago.MultiClient.Net.MessageLog.Messages.ChatLogMessage && !PrintChatMessages)
                 return;

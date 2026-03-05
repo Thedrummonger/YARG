@@ -9,7 +9,7 @@ using YARG.Menu.Persistent;
 
 namespace YARG.Assets.Script.Yarchipelago
 {
-    public class ArchipelagoConnectionDialog : MonoBehaviour
+    public partial class ArchipelagoConnectionDialog : MonoBehaviour
     {
         public static ArchipelagoConnectionDialog Instance { get; private set; }
 
@@ -55,6 +55,14 @@ namespace YARG.Assets.Script.Yarchipelago
             _windowRect = GUI.Window(0xA1C4, _windowRect, DrawWindow, "Archipelago Connection");
         }
         private void DrawWindow(int id)
+        {
+            if (ChatOpen)
+                DrawChatUI();
+            else
+                DrawConnectionUI();
+        }
+
+        private void DrawConnectionUI()
         {
             GUILayout.BeginHorizontal();
 
@@ -141,6 +149,11 @@ namespace YARG.Assets.Script.Yarchipelago
             if (GUILayout.Button($"Print Unrelated Items: {Events.PrintUnrelatedItems}"))
                 Events.PrintUnrelatedItems = !Events.PrintUnrelatedItems;
 
+            GUILayout.Space(25);
+
+            if (GUILayout.Button($"Show Chat Window", GUILayout.Height(28)))
+                ChatOpen = !ChatOpen;
+
             GUILayout.EndVertical();
 
             GUILayout.EndHorizontal();
@@ -167,12 +180,6 @@ namespace YARG.Assets.Script.Yarchipelago
         {
             var dialog = GetOrCreateApDialog();
             dialog.Show = !dialog.Show;
-
-            ApToastManager.APToastMessage("Message!");
-            ApToastManager.APToastError("Error!");
-            ApToastManager.APToastJunkItem("Junk!");
-            ApToastManager.APToastStandardItem("Standard!");
-            ApToastManager.APToastProgressionItem("Progression!");
         }
 
         public static ArchipelagoConnectionDialog GetOrCreateApDialog()
