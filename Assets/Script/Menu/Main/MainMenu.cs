@@ -1,5 +1,7 @@
 ﻿using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using YARG.Assets.Script.YargAP;
 using YARG.Core.Input;
 using YARG.Menu.MusicLibrary;
 using YARG.Menu.Navigation;
@@ -98,6 +100,12 @@ namespace YARG.Menu.Main
             SettingsMenu.Instance.gameObject.SetActive(true);
         }
 
+        public void Archipelago()
+        {
+            //MenuManager.Instance.PushMenu(MenuManager.Menu.Archipelago);
+            ToggleArchipelagoDialog();
+        }
+
         public void Exit()
         {
 #if UNITY_EDITOR
@@ -123,6 +131,34 @@ namespace YARG.Menu.Main
         public void OpenGithub()
         {
             Application.OpenURL("https://github.com/YARC-Official/YARG");
+        }
+
+        private void Update()
+        {
+            if (!Application.isFocused) return;
+
+            // Pick whatever key you want
+            if (Keyboard.current != null && Keyboard.current.f10Key.wasPressedThisFrame)
+            {
+                //ToggleArchipelagoDialog();
+            }
+        }
+
+        private void ToggleArchipelagoDialog()
+        {
+            var dialog = GetOrCreateApDialog();
+            dialog.Show = !dialog.Show;
+        }
+
+        private static ArchipelagoConnectionDialog GetOrCreateApDialog()
+        {
+            if (ArchipelagoConnectionDialog.Instance != null)
+                return ArchipelagoConnectionDialog.Instance;
+
+            var DialogObject = new GameObject("ArchipelagoConnectionDialog");
+            DontDestroyOnLoad(DialogObject);
+
+            return DialogObject.AddComponent<ArchipelagoConnectionDialog>();
         }
     }
 }
