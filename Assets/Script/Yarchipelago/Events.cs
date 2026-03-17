@@ -35,8 +35,8 @@ namespace YARG.Assets.Script.Yarchipelago
 
         public static HashSet<string> AllReceivedInstruments = new HashSet<string>();
 
-        const long minScale = 20000;
-        const long maxScale = 1000000;
+        const long minScale = 10000;
+        const long maxScale = 500000;
 
         public static string DeathLinkKey => IsConnected ? $"EnergyLink{Session.Players.ActivePlayer.Team}" : "";
 
