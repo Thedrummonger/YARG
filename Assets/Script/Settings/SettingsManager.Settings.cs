@@ -184,6 +184,8 @@ namespace YARG.Settings
                     HighScoreHistoryMode.HighestDifficulty,
                 };
 
+            public ToggleSetting ShowPercentDecimals { get; } = new(false);
+
             #endregion
 
             #region Sound
@@ -510,6 +512,8 @@ namespace YARG.Settings
             public ToggleSetting InputDeviceLogging { get; } = new(false, InputDeviceLoggingCallback);
 
             public ToggleSetting ShowAdvancedMusicLibraryOptions { get; } = new(false);
+
+            public ToggleSetting ShowAdvancedSettings { get; } = new(false);
 
             public DropdownSetting<LogLevel> MinimumLogLevel { get; } = new(
 #if UNITY_EDITOR
