@@ -148,19 +148,23 @@ namespace YARG.Menu.Persistent
 
         private void ShowToast(ToastType type, string body, Action onClick)
         {
+            if (Assets.Script.Yarchipelago.ApToastManager.HandleAPToasts((int) type, body, onClick, this, _toastPrefab,
+                _generalColor, _informationColor, _successColor, _warningColor, _errorColor)) return;
             // Get properties for this message type
             var (text, color, icon) = type switch
             {
-                ToastType.General     => ("General",     _generalColor,     _iconGeneral),
+                ToastType.General => ("General", _generalColor, _iconGeneral),
                 ToastType.Information => ("Information", _informationColor, _iconInformation),
-                ToastType.Success     => ("Success",     _successColor,     _iconSuccess),
-                ToastType.Warning     => ("Warning",     _warningColor,     _iconWarning),
-                ToastType.Error       => ("Error",       _errorColor,       _iconError),
+                ToastType.Success => ("Success", _successColor, _iconSuccess),
+                ToastType.Warning => ("Warning", _warningColor, _iconWarning),
+                ToastType.Error => ("Error", _errorColor, _iconError),
                 _ => throw new ArgumentException($"Invalid toast type {type}!")
             };
 
             var toast = Instantiate(_toastPrefab, transform);
             toast.Initialize(text, body, icon, color, onClick);
         }
+
+        public static void AddToast(int type, string text, Action onClick) => AddToast((ToastType) type, text, onClick);
     }
 }
