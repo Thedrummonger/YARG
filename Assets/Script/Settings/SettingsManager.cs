@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -48,7 +48,7 @@ namespace YARG.Settings
                 nameof(Settings.VoiceActivatedVocalStarPower),
                 new FieldMetadata(nameof(Settings.EnablePracticeSP), isAdvanced: true),
                 new FieldMetadata(nameof(Settings.PracticeRestartDelay), isAdvanced: true),
-                nameof(Settings.NoFailMode),
+                nameof(Settings.NoFail),
                 nameof(Settings.LearningGuides),
                 new FieldMetadata(nameof(Settings.ReduceNoteSpeedByDifficulty)),
 
@@ -66,6 +66,7 @@ namespace YARG.Settings
                 new FieldMetadata(nameof(Settings.ShowCursorTimer), isAdvanced: true),
                 nameof(Settings.PauseOnDeviceDisconnect),
                 nameof(Settings.PauseOnFocusLoss),
+                nameof(Settings.MuteOnFocusLoss),
                 nameof(Settings.WrapAroundNavigation),
                 nameof(Settings.DiscordRichPresence),
                 new FieldMetadata(nameof(Settings.AmIAwesome), isAdvanced: true),
@@ -77,6 +78,7 @@ namespace YARG.Settings
                 nameof(Settings.UseFullDirectoryForPlaylists),
                 nameof(Settings.Genrelizer),
                 new HeaderMetadata("MusicLibrary"),
+                nameof(Settings.MaxSongRating),
                 nameof(Settings.ShowFavoriteButton),
                 nameof(Settings.DifficultyRings),
                 nameof(Settings.HighScoreInfo),
@@ -89,6 +91,7 @@ namespace YARG.Settings
             new MetadataTab("Sound", icon: "Sound")
             {
                 new HeaderMetadata("Volume"),
+                new FieldMetadata(nameof(Settings.EnableNormalization), isAdvanced: true),
                 nameof(Settings.MasterMusicVolume),
                 nameof(Settings.GuitarVolume),
                 new FieldMetadata(nameof(Settings.RhythmVolume), isAdvanced: true),
@@ -106,7 +109,6 @@ namespace YARG.Settings
                 new FieldMetadata(nameof(Settings.MetronomeVolume), isAdvanced: true),
 
                 new HeaderMetadata("Customization", isAdvanced: true),
-                new FieldMetadata(nameof(Settings.EnablePlaybackBuffer), isAdvanced: true),
                 new FieldMetadata(nameof(Settings.PlaybackBufferLength), isAdvanced: true),
 
                 new HeaderMetadata("Input"),
@@ -146,6 +148,7 @@ namespace YARG.Settings
                 new FieldMetadata(nameof(Settings.VenueRenderingQuality), isAdvanced: true),
                 new FieldMetadata(nameof(Settings.VenueAntiAliasing), isAdvanced: true),
                 new FieldMetadata(nameof(Settings.VenuePostProcessing), isAdvanced: true),
+                nameof(Settings.ReduceFlashingLights),
 
                 new HeaderMetadata("Gameplay"),
                 nameof(Settings.StaticVocalsMode),
@@ -239,7 +242,6 @@ namespace YARG.Settings
                 nameof(Settings.BandComboTypeSetting),
                 nameof(Settings.CustomVocalsCharacter),
                 nameof(Settings.DataStreamEnable),
-                nameof(Settings.EnableNormalization),
                 nameof(Settings.SaveScoresWithBots),
                 new HeaderMetadata("Accessibility"),
                 nameof(Settings.FontScaling),
