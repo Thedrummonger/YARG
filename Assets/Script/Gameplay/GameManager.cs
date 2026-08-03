@@ -1,9 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using YARG.Assets.Script.YargAP;
 using YARG.Core.Audio;
 using YARG.Core.Chart;
 using YARG.Core.Engine;
@@ -223,11 +225,17 @@ namespace YARG.Gameplay
             CountdownDisplay.DisplayStyle = SettingsManager.Settings.CountdownDisplay.Value;
 
             _frameTimes = new List<double>();
+
+            Assets.Script.Yarchipelago.Events.OnSongAwake(this);
         }
 
         private void OnDestroy()
         {
+            Assets.Script.Yarchipelago.Events.OnSongDestroy(this);
+
             YargLogger.LogInfo("Exiting song");
+
+            Assets.Script.YargAP.APEvents.CurrentSong = null;
 
             if (Navigator.Instance != null)
             {
@@ -274,9 +282,10 @@ namespace YARG.Gameplay
             Screen.sleepTimeout = _originalSleepTimeout;
         }
 
+        private bool HasShownGoalWarning = false;
         private void Update()
         {
-
+            Assets.Script.Yarchipelago.Events.OnSongUpdate(this, _pauseMenu);
 
             // Pause/unpause
             if (Keyboard.current.escapeKey.wasPressedThisFrame)
@@ -341,6 +350,13 @@ namespace YARG.Gameplay
             if (_songRunner.SongTime >= SongLength)
             {
                 if (EndSong())
+                {
+                    return;
+                }
+            }
+            if (Keyboard.current.ctrlKey.isPressed && Keyboard.current.pauseKey.wasPressedThisFrame)
+            {
+                if (EndSong(true))
                 {
                     return;
                 }
@@ -632,7 +648,7 @@ namespace YARG.Gameplay
         public double GetInputTime(double inputSystemTime)
             => _songRunner.GetInputTime(inputSystemTime);
 
-        private bool EndSong()
+        private bool EndSong(bool Force = false)
         {
             _crowdClapScheduler?.Dispose();
             // Dispose the crowd handler
@@ -644,7 +660,7 @@ namespace YARG.Gameplay
                 return false;
             }
 
-            if (_songRunner.SongTime < SongLength + SONG_END_DELAY)
+            if (_songRunner.SongTime < SongLength + SONG_END_DELAY && !Force)
             {
                 return false;
             }
@@ -657,15 +673,17 @@ namespace YARG.Gameplay
 #nullable enable
             ReplayInfo? replayInfo = null;
 #nullable disable
+            /*
             try
             {
                 _isReplaySaved = false;
-                replayInfo = SaveReplay(_songRunner.InputTime, ScoreContainer.ScoreReplayDirectory);
+                //replayInfo = SaveReplay(_songRunner.InputTime, ScoreContainer.ScoreReplayDirectory);
             }
             catch (Exception e)
             {
                 YargLogger.LogException(e, "Failed to save replay!");
             }
+            */
 
             // Pass the score info to the stats screen
             GlobalVariables.State.ScoreScreenStats = new ScoreScreenStats
@@ -683,6 +701,11 @@ namespace YARG.Gameplay
             };
 
             RecordScores(replayInfo);
+
+            Assets.Script.Yarchipelago.Events.OnEndSong(this);
+
+            // Dispose the crowd handler
+            CrowdEventHandler.Dispose();
 
             // Go to the score screen
             GlobalVariables.Instance.LoadScene(SceneIndex.Score);
@@ -966,6 +989,7 @@ namespace YARG.Gameplay
 
                 // Pause gameplay immediately, but don't show the menu until the highways have lowered
                 _songRunner.Pause();
+                FlagDeathLink();
                 _mixer.FadeOut(SONG_END_DELAY);
                 await UniTask.Delay(TimeSpan.FromSeconds(SONG_END_DELAY));
                 GlobalAudioHandler.PlayVoxSample(VoxSample.FailSound);

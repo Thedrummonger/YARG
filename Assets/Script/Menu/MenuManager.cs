@@ -18,6 +18,7 @@ namespace YARG.Menu
             ProfileInfo,
             History,
             Content,
+            Archipelago,
         }
 
         /// <summary>

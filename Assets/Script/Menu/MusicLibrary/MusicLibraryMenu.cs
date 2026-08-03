@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using TMPro;
@@ -515,6 +516,8 @@ namespace YARG.Menu.MusicLibrary
 
             if (!_searchField.IsSearching)
             {
+                AddAPMenuItems(list);
+
                 list.Add(new ButtonViewType(
                     Localize.Key("Menu.MusicLibrary.Playlists"),
                     "MusicLibraryIcons[Playlists]",

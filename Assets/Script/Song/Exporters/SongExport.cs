@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using Newtonsoft.Json;
 using YARG.Core;
 using YARG.Core.Song;
@@ -152,6 +153,7 @@ namespace YARG.Song.Exporters
                     $"{vocals},{harmony},{band},{subType},{hash}"
                 );
             }
+            PythonFile.Append('}');
 
             output.Flush();
 
