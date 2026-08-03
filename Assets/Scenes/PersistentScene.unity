@@ -1751,6 +1751,7 @@ GameObject:
   - component: {fileID: 728815265}
   - component: {fileID: 728815267}
   - component: {fileID: 728815268}
+  - component: {fileID: 728815269}
   m_Layer: 0
   m_Name: Integrations
   m_TagString: Untagged
