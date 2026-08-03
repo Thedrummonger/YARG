@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine;
@@ -8,6 +8,7 @@ using YARG.Core.Logging;
 using YARG.Core.Audio;
 using YARG.Helpers;
 using YARG.Input;
+using YARG.Input.Bindings;
 using YARG.Integration;
 using YARG.Localization;
 using YARG.Menu.Navigation;
@@ -26,7 +27,8 @@ namespace YARG
         Menu,
         Gameplay,
         Calibration,
-        Score
+        Score,
+        Content
     }
 
     [DefaultExecutionOrder(-5000)]
@@ -44,6 +46,9 @@ namespace YARG
         public SceneIndex CurrentScene { get; private set; } = SceneIndex.Persistent;
 
         public string CurrentVersion { get; private set; } = "v0.15";
+
+        private float _nextLocalizationUpdate;
+        private const float LOCALIZATION_UPDATE_INTERVAL = 1800f;
 
         protected override void SingletonAwake()
         {
@@ -79,6 +84,8 @@ namespace YARG
             CustomContentManager.Initialize();
             LocalizationManager.Initialize(CommandLineArgs.Language);
 
+            _nextLocalizationUpdate = Time.realtimeSinceStartup + LOCALIZATION_UPDATE_INTERVAL + UnityEngine.Random.Range(-30f, 30f);
+
             int profileCount = PlayerContainer.LoadProfiles();
             YargLogger.LogFormatInfo("Loaded {0} profiles", profileCount);
 
@@ -102,27 +109,6 @@ namespace YARG
             LoadScene(SceneIndex.Menu);
         }
 
-        // Tracks whether audio was muted because the window lost focus,
-        // so it can be restored when focus returns.
-        private bool _mutedFromFocusLoss;
-
-        private void OnApplicationFocus(bool hasFocus)
-        {
-            if (!hasFocus)
-            {
-                if (SettingsManager.Settings.MuteOnFocusLoss.Value && !_mutedFromFocusLoss)
-                {
-                    GlobalAudioHandler.SetMasterVolume(0);
-                    _mutedFromFocusLoss = true;
-                }
-            }
-            else if (_mutedFromFocusLoss)
-            {
-                GlobalAudioHandler.SetMasterVolume(SettingsManager.Settings.MasterMusicVolume.Value);
-                _mutedFromFocusLoss = false;
-            }
-        }
-
 #if UNITY_EDITOR
 
         // For respecting the editor's mute button
@@ -135,6 +121,13 @@ namespace YARG
             {
                 GlobalAudioHandler.SetMasterVolume(muted ? 0 : SettingsManager.Settings.MasterMusicVolume.Value);
                 _previousMute = muted;
+            }
+
+            if (CurrentScene != SceneIndex.Gameplay && Time.realtimeSinceStartup > _nextLocalizationUpdate)
+            {
+                _ = LocalizationManager.LoadUpdates();
+                _nextLocalizationUpdate = Time.realtimeSinceStartup + LOCALIZATION_UPDATE_INTERVAL + UnityEngine.Random.Range(-30f, 30f);
+                YargLogger.LogFormatDebug("Updating localization at {0}, next update at {1}", Time.realtimeSinceStartup, _nextLocalizationUpdate);
             }
         }
 
@@ -159,7 +152,7 @@ namespace YARG
 #endif
         }
 
-        private async void LoadSceneAdditive(SceneIndex scene)
+        private async void LoadSceneAdditive(SceneIndex scene, bool restartMicrophones)
         {
             CurrentScene = scene;
 
@@ -173,11 +166,18 @@ namespace YARG
 
             await Resources.UnloadUnusedAssets();
             GC.Collect();
+
+            if (restartMicrophones)
+            {
+                RestartProfileMicrophones();
+            }
         }
 
         public void LoadScene(SceneIndex scene)
         {
             Navigator.Instance.DisableMenuInputs = true;
+            bool restartMicrophones = CurrentScene == SceneIndex.Gameplay && scene != SceneIndex.Gameplay;
+
             // Unload the current scene and load in the new one, or just load in the new one
             if (CurrentScene != SceneIndex.Persistent)
             {
@@ -185,11 +185,29 @@ namespace YARG
                 var asyncOp = SceneManager.UnloadSceneAsync((int) CurrentScene);
 
                 // The load the new scene
-                asyncOp.completed += _ => LoadSceneAdditive(scene);
+                asyncOp.completed += _ => LoadSceneAdditive(scene, restartMicrophones);
             }
             else
             {
-                LoadSceneAdditive(scene);
+                LoadSceneAdditive(scene, restartMicrophones);
+            }
+        }
+
+        public static void RestartProfileMicrophones()
+        {
+            var microphones = new HashSet<BassMicDevice>();
+            foreach (var profile in PlayerContainer.Profiles)
+            {
+                var bindings = BindingsContainer.GetBindingsForProfile(profile);
+                if (bindings?.Microphone is BassMicDevice microphone)
+                {
+                    microphones.Add(microphone);
+                }
+            }
+
+            foreach (var microphone in microphones)
+            {
+                microphone.RestartRecording();
             }
         }
 
@@ -245,6 +263,25 @@ namespace YARG
 #else
             return $"{branch} b{commitCount} ({commit})";
 #endif
+        }
+
+        public static string GetReleaseType()
+        {
+            string kind = null;
+#if UNITY_EDITOR || YARG_TEST_BUILD
+            kind = "dev";
+#elif YARG_NIGHTLY_BUILD
+            kind = "nightly";
+#else
+            kind = "release";
+#endif
+            return kind;
+        }
+
+        // Maybe there is a better place for this?
+        public LocalizeText[] GetLocalizedTexts()
+        {
+            return FindObjectsByType<LocalizeText>(FindObjectsSortMode.None);
         }
     }
 }
