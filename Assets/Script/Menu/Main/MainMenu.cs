@@ -37,6 +37,11 @@ namespace YARG.Menu.Main
 
                 _antiPiracyDialogShown = true;
             }
+
+            if (SettingsMenu.ConsumeOpenOnNextMenuLoad())
+            {
+                SettingsMenu.Instance.gameObject.SetActive(true);
+            }
         }
 
         private void OnEnable()
