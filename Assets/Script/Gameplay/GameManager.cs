@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
@@ -223,10 +223,14 @@ namespace YARG.Gameplay
             CountdownDisplay.DisplayStyle = SettingsManager.Settings.CountdownDisplay.Value;
 
             _frameTimes = new List<double>();
+
+            Assets.Script.Yarchipelago.Events.OnSongAwake(this);
         }
 
         private void OnDestroy()
         {
+            Assets.Script.Yarchipelago.Events.OnSongDestroy(this);
+
             YargLogger.LogInfo("Exiting song");
 
             if (Navigator.Instance != null)
@@ -277,6 +281,7 @@ namespace YARG.Gameplay
         private void Update()
         {
 
+            Assets.Script.Yarchipelago.Events.OnSongUpdate(this, _pauseMenu);
 
             // Pause/unpause
             if (Keyboard.current.escapeKey.wasPressedThisFrame)
@@ -660,7 +665,7 @@ namespace YARG.Gameplay
             try
             {
                 _isReplaySaved = false;
-                replayInfo = SaveReplay(_songRunner.InputTime, ScoreContainer.ScoreReplayDirectory);
+                //replayInfo = SaveReplay(_songRunner.InputTime, ScoreContainer.ScoreReplayDirectory);
             }
             catch (Exception e)
             {
@@ -683,6 +688,11 @@ namespace YARG.Gameplay
             };
 
             RecordScores(replayInfo);
+
+            Assets.Script.Yarchipelago.Events.OnEndSong(this);
+
+            // Dispose the crowd handler
+            CrowdEventHandler.Dispose();
 
             // Go to the score screen
             GlobalVariables.Instance.LoadScene(SceneIndex.Score);
@@ -966,6 +976,7 @@ namespace YARG.Gameplay
 
                 // Pause gameplay immediately, but don't show the menu until the highways have lowered
                 _songRunner.Pause();
+                FlagDeathLink();
                 _mixer.FadeOut(SONG_END_DELAY);
                 await UniTask.Delay(TimeSpan.FromSeconds(SONG_END_DELAY));
                 GlobalAudioHandler.PlayVoxSample(VoxSample.FailSound);
