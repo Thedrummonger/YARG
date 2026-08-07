@@ -45,7 +45,7 @@ namespace YARG.Menu.Main
         private void OnEnable()
         {
             // Set navigation scheme
-            Navigator.Instance.PushScheme(new NavigationScheme(new()
+            _ = Navigator.Instance.PushScheme(new NavigationScheme(new()
             {
                 NavigationScheme.Entry.NavigateSelect,
                 NavigationScheme.Entry.NavigateUp,
@@ -86,6 +86,11 @@ namespace YARG.Menu.Main
         public void Profiles()
         {
             MenuManager.Instance.PushMenu(MenuManager.Menu.ProfileList);
+        }
+
+        public void Content()
+        {
+            MenuManager.Instance.PushMenu(MenuManager.Menu.Content);
         }
 
         public void Replays()
