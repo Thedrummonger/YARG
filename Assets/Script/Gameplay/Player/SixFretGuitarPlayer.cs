@@ -71,13 +71,21 @@ namespace YARG.Gameplay.Player
         {
             // 5-fret charts played in 6-fret mode are remapped into legal 6-fret chords;
             // lefty flip additionally swaps the black/white pad rows of every note
-            return chart.GetSixFretPlayableDifficulty(Player.Profile.CurrentInstrument, Player.Profile.CurrentDifficulty,
+            var instrumentDifficulty = chart.GetSixFretPlayableDifficulty(Player.Profile.CurrentInstrument, Player.Profile.CurrentDifficulty,
                 Player.Profile.LeftyFlip);
+            if (instrumentDifficulty.Instrument is Instrument.FiveFretBass or Instrument.FiveFretGuitar)
+            {
+                _chartIsFiveFretOnSixFret = true;
+            }
+
+            return instrumentDifficulty;
         }
 
         // --- CreateEngine() hooks (replaces full method duplication) ---
+        private bool _chartIsFiveFretOnSixFret = false;
 
-        protected override Instrument GetBassInstrument() => Instrument.SixFretBass;
+        //TODO: We need a better way to represent 5F charts on 6F, or any other converted chart than just pretending they are the chart's instrument.
+        protected override Instrument GetBassInstrument() => _chartIsFiveFretOnSixFret ? Instrument.FiveFretBass : Instrument.SixFretBass;
 
         protected override EnginePreset.FiveFretGuitarPreset GetEnginePreset() => Player.EnginePreset.SixFretGuitar;
 
@@ -267,15 +275,60 @@ namespace YARG.Gameplay.Player
             foreach (var note in chordParent.AllNotes)
             {
                 (NotePool.GetByKey(note) as SixFretGuitarNoteElement)?.HitNote();
+            }
 
-                if (note.Fret != (int)SixFretGuitarFret.Open && note.Fret != (int)SixFretGuitarFret.Wildcard)
+            // Color the fret hit particles based on which notes were hit:
+            // black particles for black frets, white for white frets, a mix of
+            // the two for barres (both halves of a pad), and the open particles
+            // for open/wild notes. One burst per fret pad, not per note.
+            var colors = Player.ColorProfile.SixFretGuitar;
+            var blackParticles = colors.BlackParticles.ToUnityColor();
+            var whiteParticles = colors.WhiteParticles.ToUnityColor();
+
+            bool openHit = false;
+            int blackLanes = 0;
+            int whiteLanes = 0;
+
+            foreach (var note in chordParent.AllNotes)
+            {
+                if (note.Fret == (int) SixFretGuitarFret.Open || note.Fret == (int) SixFretGuitarFret.Wildcard)
                 {
-                    _fretArray.PlayHitAnimation(note.Fret);
+                    openHit = true;
+                    continue;
+                }
+
+                // Fret-pair index (0-2), independent of lefty flip; fret objects
+                // are keyed by fret value, not visual lane
+                int pair = note.Fret <= (int) SixFretGuitarFret.Black3
+                    ? note.Fret - (int) SixFretGuitarFret.Black1
+                    : note.Fret - (int) SixFretGuitarFret.White1;
+                if (note.Fret <= (int) SixFretGuitarFret.Black3)
+                {
+                    blackLanes |= 1 << pair;
                 }
                 else
                 {
-                    _fretArray.PlayFullWidthHitAnimation();
+                    whiteLanes |= 1 << pair;
                 }
+            }
+
+            if (openHit)
+            {
+                _fretArray.PlayFullWidthHitAnimation();
+            }
+
+            for (int pair = 0; pair < LaneCount; pair++)
+            {
+                bool black = (blackLanes & (1 << pair)) != 0;
+                bool white = (whiteLanes & (1 << pair)) != 0;
+                if (!black && !white) continue;
+
+                var particleColor = black && white
+                    ? UnityEngine.Color.Lerp(blackParticles, whiteParticles, 0.5f)
+                    : black ? blackParticles : whiteParticles;
+
+                // Both halves of a pad share one fret object, keyed by the black fret
+                _fretArray.PlayHitAnimation((int) SixFretGuitarFret.Black1 + pair, particleColor);
             }
         }
 

@@ -1,4 +1,4 @@
-﻿using DG.Tweening;
+using DG.Tweening;
 using System;
 using System.Collections;
 using TMPro;
@@ -44,7 +44,7 @@ namespace YARG.Gameplay.HUD
             var profile = player.Profile;
             _playerName.text = profile.Name;
 
-            var spriteName = player.GetInstrumentSprite();
+            var spriteName = player.GetInstrumentSprite(GameManager.Song);
             _instrumentIcon.sprite = Addressables
                 .LoadAssetAsync<Sprite>(spriteName)
                 .WaitForCompletion();
@@ -61,7 +61,7 @@ namespace YARG.Gameplay.HUD
 
             var textureNeedle = $"VocalNeedleTexture/{needleId}";
             _needleIcon.texture = Addressables.LoadAssetAsync<Texture2D>(textureNeedle).WaitForCompletion();
-            _instrumentIcon.color = player.GetHarmonyColor();
+            _instrumentIcon.color = player.GetGameplayIconColor();
             ShowPlayer(player);
         }
 
@@ -74,9 +74,14 @@ namespace YARG.Gameplay.HUD
         {
             _canvasGroup.alpha = 1f;
             yield return new WaitForSeconds(DisplayTime);
-            yield return _canvasGroup.DOFade(0f, FadeDuration).WaitForCompletion();
+            yield return _canvasGroup.DOFade(0f, FadeDuration).SetLink(gameObject).WaitForCompletion();
 
             gameObject.SetActive(false);
+        }
+
+        private void OnDisable()
+        {
+            _canvasGroup.DOKill();
         }
     }
 }

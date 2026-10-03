@@ -12,7 +12,6 @@ using YARG.Core.Replays;
 using YARG.Gameplay.HUD;
 using YARG.Gameplay.Player;
 using YARG.Menu;
-using YARG.Menu.Navigation;
 using YARG.Menu.Persistent;
 using YARG.Menu.Settings;
 using YARG.Playback;
@@ -252,9 +251,6 @@ namespace YARG.Gameplay
                 return;
             }
 
-            // Listen for menu inputs
-            Navigator.Instance.NavigationEvent += OnNavigationEvent;
-
             // Debug info
             InitializeDebug();
 #if UNITY_EDITOR
@@ -457,6 +453,7 @@ namespace YARG.Gameplay
                 foreach (var player in YargPlayers)
                 {
                     player.IsScoreValid = true;
+                    player.ResetParticipation();
 
                     if (!player.IsReplay)
                     {
@@ -526,11 +523,10 @@ namespace YARG.Gameplay
                             VocalTrack.transform.position = new Vector3(highwayIndex * TRACK_SPACING_X, 100, 0);
                             _trackViewManager.CreateVocalTrackView(highwayIndex);
 
-                            // Since all players have to select the same vocals
-                            // type (solo/harmony) this works no problem.
-                            var chart = player.Profile.CurrentInstrument == Instrument.Vocals
-                                ? Chart.Vocals
-                                : Chart.Harmony;
+                            // Use GetVocalsTrack so PartyVocals gets the correct track
+                            // (harmony when available, solo vocals fallback for songs
+                            // with no harmony parts).
+                            var chart = Chart.GetVocalsTrack(player.Profile.CurrentInstrument);
                             VocalTrack.Initialize(chart, player, Song.VocalScrollSpeedScalingFactor);
 
                             if (SettingsManager.Settings.KeepLyricBar.Value &&

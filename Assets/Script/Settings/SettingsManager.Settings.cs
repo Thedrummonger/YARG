@@ -39,6 +39,15 @@ namespace YARG.Settings
         LegacyLabels,
     }
 
+    public enum SecondaryAlbumSortMode
+    {
+        AlbumsByTitleSongsByTitle,
+        AlbumsByTitleSongsByTrack,
+        AlbumsByYearSongsByTitle,
+        AlbumsByYearSongsByTrack,
+        Off,
+    }
+
     public enum ShowMeanSongOffsetCalibrationMode
     {
         Off,
@@ -141,6 +150,10 @@ namespace YARG.Settings
 
             public Dictionary<string, HUDPositionProfile> HUDPositionProfiles = new();
 
+            // Filter selections are stored separately from the toggle setting because their
+            // available values are generated from the user's song library at runtime.
+            public Dictionary<string, Dictionary<string, bool>> RememberedFilters = new();
+
             private static MetronomeSample? _previousMetronomeSound;
 
             public bool ShowCustomCharacterInstructions = true;
@@ -234,6 +247,7 @@ namespace YARG.Settings
 
             public ToggleSetting PauseOnDeviceDisconnect { get; } = new(true);
             public ToggleSetting PauseOnFocusLoss { get; } = new(true);
+            public ToggleSetting PauseOnMenuOpen { get; } = new(true);
             public ToggleSetting MuteOnFocusLoss { get; } = new(false);
 
             public ToggleSetting WrapAroundNavigation { get; } = new(true);
@@ -254,6 +268,11 @@ namespace YARG.Settings
 
             private static void RefreshSongs()
             {
+                if (!IsInitialized)
+                {
+                    return;
+                }
+
                 SongContainer.RequestContainerRefresh();
                 MusicLibraryMenu.SetReload(MusicLibraryReloadState.Full);
                 HistoryMenu.ForceUpdate = true;
@@ -273,10 +292,24 @@ namespace YARG.Settings
             // this setting could change the available songs, so we need to refresh the song list
             public ToggleSetting CensorMatureContent { get; } = new(false, _ => RefreshSongs());
 
+            public ToggleSetting RememberFilters { get; } = new(false);
+
             public ToggleSetting AllowDuplicateSongs { get; } = new(true, _ => MusicLibraryMenu.SetReload(MusicLibraryReloadState.Partial));
             public ToggleSetting UseFullDirectoryForPlaylists { get; } = new(false);
 
             public ToggleSetting ShowFavoriteButton { get; } = new(true);
+
+            public DropdownSetting<SecondaryAlbumSortMode> SecondaryAlbumSort { get; }
+                = new(SecondaryAlbumSortMode.AlbumsByTitleSongsByTitle,
+                    _ => MusicLibraryMenu.SetReload(MusicLibraryReloadState.Partial))
+                {
+                    SecondaryAlbumSortMode.AlbumsByTitleSongsByTitle,
+                    SecondaryAlbumSortMode.AlbumsByTitleSongsByTrack,
+                    SecondaryAlbumSortMode.AlbumsByYearSongsByTitle,
+                    SecondaryAlbumSortMode.AlbumsByYearSongsByTrack,
+                    SecondaryAlbumSortMode.Off,
+                };
+
             public ToggleSetting ShowRecommendedSongs { get; } = new(true, ShowRecommendedSongsCallback);
             public ToggleSetting OnlyShowPlayableSongs { get; } = new(false, RefreshLibraryFilterCallback);
 
@@ -401,6 +434,7 @@ namespace YARG.Settings
             {
                 AutomaticPlaybackBuffer = new(true, AutomaticPlaybackBufferChanged);
                 PlaybackBufferLength.EditableWhen = () => !AutomaticPlaybackBuffer.Value;
+                MuteOnlyWhenAllPlayersMiss.EditableWhen = () => MuteOnMiss.Value != AudioFxMode.Off;
             }
 
             public SliderSetting MicrophoneSensitivity { get; } = new(2f, -50f, 50f);
@@ -411,6 +445,8 @@ namespace YARG.Settings
                 AudioFxMode.MultitrackOnly,
                 AudioFxMode.On
             };
+
+            public ToggleSetting MuteOnlyWhenAllPlayersMiss { get; } = new(false);
 
             public DropdownSetting<AudioFxMode> UseStarpowerFx { get; } = new(AudioFxMode.On)
             {
@@ -635,7 +671,7 @@ namespace YARG.Settings
                 FileExplorerHelper.OpenFolder(PathHelper.ExecutablePath);
             }
 
-            public async void RemoveRemoteContent()
+            public void RemoveRemoteContent()
             {
                 // Pop confirmation dialog
                 DialogManager.Instance.ShowConfirmDeleteDialog("Are you sure you want to remove all cached content?\n\nRemote content you access will be redownloaded, possibly causing loading delays.",
@@ -1332,7 +1368,7 @@ namespace YARG.Settings
             private static void CustomCharacterCallback(string file)
             {
                 // CharacterPreviewBuilder.CharacterFile = file;
-                _ = CharacterPreviewBuilder.ChangeCharacter(file);
+                CharacterPreviewBuilder.ChangeCharacter(file);
             }
             #endregion
         }
