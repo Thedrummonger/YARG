@@ -202,7 +202,7 @@ namespace YARG.Assets.Script.Yarchipelago
                 };
                 result.Loc2Id = result.Loc1Id + 1;
                 result.Loc3Id = result.Loc1Id + 2;
-                result.ItemId = (result.Loc3Id / 3) + 11; // 11 is how many static items there are, I hate to magic number this but not really an easier way to get it.
+                result.ItemId = (result.Loc3Id / 3) + 16; // 11 is how many static items there are, I hate to magic number this but not really an easier way to get it.
 
                 if (array.Count > 4)
                     result.Instrument = array[4].ToObject<string>();
